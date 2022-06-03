@@ -1,0 +1,5 @@
+Collection Id,Collection Name,Batch Id,Batch Name,User UUID,State,District,Org Name,School Id,School Name,Block Name,Cluster Name,User Type,User Sub Type,Declared Board,Enrolment Date,Completion Date,Certificate Status,Progress,Total Score,do_1128870328040161281204 - Score
+do_1130928636168192001667,24 aug course,BatchId_batch-001,Basic Java,user-004,Delhi,babarpur,"","","","","","","","",15/11/2019,"","",100,"",""
+do_1130928636168192001667,24 aug course,BatchId_batch-001,Basic Java,user-001,Karnataka,bengaluru,Root Org2,3183211,"DPS, MATHURA",BLOCK1,CLUSTER1,administrator,deo,IGOT-Health,16/11/2019,"","",100,100%,100%
+do_1130928636168192001667,24 aug course,BatchId_batch-001,Basic Java,user-002,Andhra Pradesh,bengaluru,"","","","","","","","",15/11/2019,"","",100,100%,100%
+do_1130928636168192001667,24 aug course,BatchId_batch-001,Basic Java,user-003,Karnataka,bengaluru,"","","","",anagha,administrator,deo,"",15/11/2019,"","",100,"",""
