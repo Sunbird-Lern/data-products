@@ -1,7 +1,0 @@
-findspark
-pyspark
-azure
-argparse
-kafka-python
-psycopg2-binary
-sqlalchemy
