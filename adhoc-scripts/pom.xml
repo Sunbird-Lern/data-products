@@ -18,18 +18,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.sunbird</groupId>
-			<artifactId>analytics-job-driver</artifactId>
-			<version>2.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.sunbird</groupId>
-			<artifactId>analytics-core</artifactId>
-			<version>2.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
 			<version>${scala.version}</version>
@@ -40,20 +28,6 @@
 			<artifactId>spark-core_${scala.maj.version}</artifactId>
 			<version>${spark.version}</version>
 			<scope>provided</scope>
-			<exclusions>
-				<exclusion>
-					<artifactId>jets3t</artifactId>
-					<groupId>net.java.dev.jets3t</groupId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.dropwizard.metrics</groupId>
-					<artifactId>metrics-core</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 		    <groupId>org.apache.spark</groupId>
@@ -61,35 +35,10 @@
 		    <version>${spark.version}</version>
 		    <scope>provided</scope>
 		</dependency>
-				
-		<dependency>
-			<groupId>org.apache.spark</groupId>
-			<artifactId>spark-streaming_${scala.maj.version}</artifactId>
-			<version>${spark.version}</version>
-			<scope>provided</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.spark</groupId>
-					<artifactId>spark-core_${scala.maj.version}</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
 			<version>2.8.1</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.java.dev.jets3t</groupId>
-			<artifactId>jets3t</artifactId>
-			<version>0.9.4</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.5.2</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -130,15 +79,9 @@
 			<version>1.1.4</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.redislabs</groupId>
-			<artifactId>spark-redis</artifactId>
-			<version>2.3.1</version>
-		</dependency>
 	</dependencies>
 	<build>
 		<sourceDirectory>src/main/scala</sourceDirectory>
-		<testSourceDirectory>src/test/scala</testSourceDirectory>
 		<plugins>
 			<plugin>
 				<!-- see http://davidb.github.com/scala-maven-plugin -->

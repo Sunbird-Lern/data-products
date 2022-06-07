@@ -1,9 +1,7 @@
 import com.datastax.spark.connector._
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.ekstep.analytics.framework.FrameworkContext
-import org.ekstep.analytics.framework.util.CommonUtil
 
 case class UserEnrolments(userid: String, courseid: Option[String], batchid: String, active: Option[Boolean],
                           addedby: Option[String], certificates: java.util.ArrayList[AnyRef],
@@ -23,14 +21,13 @@ object NishthaConsumption {
     val enrolmentDf = spark.sparkContext.cassandraTable[UserEnrolments]("sunbird_courses", "user_enrolments")
     enrolmentDf.saveToCassandra("sunbird_courses", "report_user_enrolments")
 
-    val assessmentDf = spark.sparkContext.cassandraTable[UserEnrolments]("sunbird_courses", "assessment_aggregator")
+    val assessmentDf = spark.sparkContext.cassandraTable("sunbird_courses", "assessment_aggregator")
     assessmentDf.saveToCassandra("sunbird_courses", "report_assessment_aggregator")
   }
 
   def main(args: Array[String]) = {
     val execType = args(0)
     val cassandraHost = args(1)
-    implicit val fc = new FrameworkContext();
     implicit val spark = getSparkSession(cassandraHost)
 
     execType match {
@@ -62,8 +59,10 @@ object NishthaConsumption {
 
     val batchDf = loadData(courseBatchSettings, new StructType()).select("courseid", "batchid")
 
-    val assessmentDf = loadData(assessmentAggDBSettings, new StructType()).select("course_id", "batch_id")
+    var assessmentDf = loadData(assessmentAggDBSettings, new StructType()).select("course_id", "batch_id")
 
-    assessmentDf = assessmentDf.join(batchDf, assessmentDf("batch_id") === batchDf("batchid"), joinType = "inner")
+    assessmentDf = assessmentDf.join(batchDf, assessmentDf("batch_id") === batchDf("batchid"), "inner")
+
+//    assessmentDf.filter()
   }
 }
