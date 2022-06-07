@@ -1,15 +1,9 @@
 import com.datastax.spark.connector._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{asc, row_number}
 import org.apache.spark.sql.{DataFrame, SparkSession}
-
-case class UserEnrolments(userid: String, courseid: Option[String], batchid: String, active: Option[Boolean],
-                          addedby: Option[String], certificates: java.util.ArrayList[AnyRef],
-                          completedon: Option[java.util.Date], completionpercentage: Option[Int],
-                          contentstatus: Option[java.util.Map[String, Int]], datetime: Option[java.util.Date],
-                          enrolleddate: Option[String], lastreadcontentid : Option[String],
-                          lastreadcontentstatus: Option[Int], progress: Option[Int], status: Option[Int])
-
 
 object NishthaConsumption {
   val cassandraFormat = "org.apache.spark.sql.cassandra";
@@ -18,7 +12,7 @@ object NishthaConsumption {
   val courseBatchSettings = Map("table" -> "report_user_enrolments", "keyspace" -> "sunbird_courses")
 
   def migration()(implicit spark: SparkSession) = {
-    val enrolmentDf = spark.sparkContext.cassandraTable[UserEnrolments]("sunbird_courses", "user_enrolments")
+    val enrolmentDf = spark.sparkContext.cassandraTable("sunbird_courses", "user_enrolments")
     enrolmentDf.saveToCassandra("sunbird_courses", "report_user_enrolments")
 
     val assessmentDf = spark.sparkContext.cassandraTable("sunbird_courses", "assessment_aggregator")
@@ -61,8 +55,12 @@ object NishthaConsumption {
 
     var assessmentDf = loadData(assessmentAggDBSettings, new StructType()).select("course_id", "batch_id")
 
-    assessmentDf = assessmentDf.join(batchDf, assessmentDf("batch_id") === batchDf("batchid"), "inner")
+    assessmentDf = assessmentDf.join(enrolmentDf, assessmentDf("batch_id") === enrolmentDf("batchid"), "inner")
 
-//    assessmentDf.filter()
+    assessmentDf = assessmentDf.filter(assessmentDf("last_issued_on")>= assessmentDf("last_attempted_on"))
+
+    val window = Window.partitionBy("course_id", "batch_id", "user_id", "content_id").orderBy(asc("last_attempted_on"))
+
+    assessmentDf = assessmentDf.withColumn("attempt_seq", row_number().over(window))
   }
 }
