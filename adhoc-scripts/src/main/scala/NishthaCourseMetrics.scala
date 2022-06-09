@@ -1,37 +1,19 @@
-package org.sunbird.analytics.job.report
-
 import java.io.{File, PrintWriter}
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql._
-import org.apache.spark.sql.SparkSession
 
-import java.util.Date
-import scala.collection.mutable.ListBuffer
-import cats.syntax.either._
-import ing.wbaa.druid.client.DruidClient
-import ing.wbaa.druid._
-import io.circe.Json
-import io.circe.parser.parse
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
-import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.types.StructType
-import org.ekstep.analytics.framework.util.JSONUtils
-import org.ekstep.analytics.framework._
-import org.scalamock.scalatest.MockFactory
-import org.sunbird.analytics.util.{EmbeddedCassandra, SparkSpec}
-import sun.util.calendar.BaseCalendar.Date
-
-import java.time.{ZoneOffset, ZonedDateTime}
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
 
 case class CourseBatch(courseid:String, batchid: String)
 case class UserEnrolment(userid: String, courseid: String, batchid: String, issued_certificates: List[Map[String, String]], status: Int)
 
-class NishthaCourseMetrics{
+object NishthaCourseMetrics {
+
+  val cassandraFormat = "org.apache.spark.sql.cassandra";
+  val assessmentAggDBSettings = Map("table" -> "assessment_aggregator", "keyspace" -> "sunbird_courses")
+  val enrolmentsDBSettings = Map("table" -> "user_enrolments", "keyspace" -> "sunbird_courses")
+  val courseBatchSettings = Map("table" -> "course_batch", "keyspace" -> "sunbird_courses")
 
   // def migration()(implicit spark: SparkSession) = {
 //    val enrolmentDf = spark.sparkContext.cassandraTable("sunbird_courses", "user_enrolments")
