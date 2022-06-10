@@ -6,7 +6,7 @@ import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.apache.spark.sql.types.StructType
 
 case class CourseBatch(courseid:String, batchid: String)
-case class UserEnrolment(userid: String, courseid: String, batchid: String, issued_certificates: List[Map[String, String]], status: Int)
+case class UserEnrolment(userid: String, courseid: String, batchid: String, issued_certificates: List[Map[String, String]], certificates: List[Map[String, String]], status: Int, active: Boolean)
 
 object NishthaCourseMetrics {
 
@@ -25,9 +25,10 @@ object NishthaCourseMetrics {
 
   def main(args: Array[String]) = {
     val cassandraHost = args(0)
+    val courseIdFile = args(1)
     implicit val spark = getSparkSession(cassandraHost)
 
-    processReport()
+    processReport(courseIdFile)
   }
 
   def getSparkSession(cassandraHost: String): SparkSession = {
@@ -48,12 +49,11 @@ object NishthaCourseMetrics {
     }
   }
 
-  def processReport()(implicit spark: SparkSession) = {
-    val enrolments = getEnrolments()
+  def processReport(courseIdFile: String)(implicit spark: SparkSession) = {
+    val enrolments = getEnrolments(courseIdFile)
     val userConsumptionDf = generateAssessments(enrolments)
 
-    userConsumptionDf.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").mode("overwrite").save("nishtha_course_metrics")
-    userConsumptionDf.show(false)
+    userConsumptionDf.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").mode("overwrite").save(courseIdFile)
   }
 
   def generateAssessments(enrolmentDf: DataFrame)(implicit spark: SparkSession): DataFrame = {
@@ -115,14 +115,14 @@ object NishthaCourseMetrics {
 
   }
 
-  def getEnrolments()(implicit spark: SparkSession): DataFrame = {
+  def getEnrolments(courseIdFile: String)(implicit spark: SparkSession): DataFrame = {
 
     import spark.implicits._
 
     val courseDf = spark.read.format("com.databricks.spark.csv")
       .option("delimiter", ",")
       .option("header", "true")
-      .load("csvfile.csv")
+      .load(courseIdFile + ".csv")
 
     val courseBatchSchema = Encoders.product[CourseBatch].schema
     val courseBatchDf = loadData(courseBatchSettings, courseBatchSchema)
@@ -136,12 +136,15 @@ object NishthaCourseMetrics {
     val userEnrolmentData = courseBatchData.join(userEnrolmentDf, Seq("courseid","batchid"), "inner")
 
     val updatedUserEnrolmentDf = userEnrolmentData
+      .filter(col("active"))
+      .withColumn("certificate_issued",
+        when((col("certificates").isNotNull && size(col("certificates").cast("array<map<string, string>>")) > 0)
+          || (col("issued_certificates").isNotNull && size(col("issued_certificates").cast("array<map<string, string>>")) > 0), "Yes").otherwise("No"))
 //      .withColumn("certIssuedOn", certIssuedOn(col("issued_certificates")))
-      .withColumn("certificate_issued", when((col("issued_certificates").isNotNull && org.apache.spark.sql.functions.size(col("issued_certificates")) =!= 0), "Yes").otherwise("No"))
 
-    updatedUserEnrolmentDf.show(10, false)
+//    updatedUserEnrolmentDf.show(10, false)
 
-    val file = new File("nishta_summary.txt" )
+    val file = new File(courseIdFile + "_summary.txt" )
     val print_Writer = new PrintWriter(file)
 
     //Total batch created
