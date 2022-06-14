@@ -66,11 +66,7 @@ object NishthaCourseMetrics {
                                   assessmentDf("batch_id") === enrolmentDf("batchid"),
                                   "inner")
 
-    val assessmentScoreDf = enrolAssessmentDf
-//      .filter(enrolAssessmentDf("last_issued_on") >= enrolAssessmentDf("last_attempted_on"))
-                            .withColumn("score_percent", lit((col("total_score")/col("total_max_score")) * 100).cast("int"))
-
-    val attemptsDf = assessmentScoreDf.groupBy("course_id", "batch_id", "user_id", "content_id").agg(count("attempt_id").as("attempts_count"))
+    val attemptsDf = enrolAssessmentDf.groupBy("course_id", "batch_id", "user_id", "content_id").agg(count("attempt_id").as("attempts_count"))
 
     val attemptCountDf = attemptsDf.groupBy("course_id","batch_id","user_id").agg(max("attempts_count").as("attempts_count"))
 
@@ -123,6 +119,7 @@ object NishthaCourseMetrics {
       .option("delimiter", ",")
       .option("header", "true")
       .load(courseIdFile + ".csv")
+      .dropDuplicates("courseid")
 
     val courseBatchSchema = Encoders.product[CourseBatch].schema
     val courseBatchDf = loadData(courseBatchSettings, courseBatchSchema)
