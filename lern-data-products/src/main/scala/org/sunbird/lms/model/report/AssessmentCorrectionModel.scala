@@ -20,6 +20,7 @@ case class AssessEvent (contentid: String, attemptId: String, courseid: String, 
 @scala.beans.BeanInfo
 case class AssessOutputEvent(assessmentTs: Long, batchId: String, courseId: String, userId: String, attemptId: String, contentId: String, events: mutable.Buffer[V3Event]) extends Output with AlgoOutput with scala.Product with scala.Serializable
 
+
 object AssessmentCorrectionModel extends IBatchModelTemplate[String,V3Event,AssessOutputEvent,AssessOutputEvent] with Serializable with BaseReportsJob {
 
   implicit val className: String = "org.sunbird.analytics.model.report.AssessmentCorrectionModel"
@@ -27,10 +28,12 @@ object AssessmentCorrectionModel extends IBatchModelTemplate[String,V3Event,Asse
 
   private val userEnrolmentDBSettings = Map("table" -> "user_enrolments", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
   val cassandraFormat = "org.apache.spark.sql.cassandra";
+
   val assessEvent = "ASSESS"
   val contentType = "SelfAssess"
 
   override def preProcess(data: RDD[String], config: Map[String, AnyRef])(implicit sc: SparkContext, fc: FrameworkContext): RDD[V3Event] = {
+
     JobLogger.log(s"Total input events from backup: ${data.count()}", None, Level.INFO)
     data.map(f => JSONUtils.deserialize[V3Event](f)).filter(f => null != f.eid && f.eid.equals(assessEvent) && null != f.`object`.get.rollup.getOrElse(RollUp("", "", "", "")).l1 && !f.`object`.get.rollup.getOrElse(RollUp("", "", "", "")).l1.isEmpty)
   }
@@ -94,6 +97,7 @@ object AssessmentCorrectionModel extends IBatchModelTemplate[String,V3Event,Asse
     val cData = f.context.cdata.getOrElse(List())
     val attemptIdList = cData.filter(f => f.`type`.equalsIgnoreCase("AttemptId")).map(f => f.id)
     val attemptId = if (!attemptIdList.isEmpty) attemptIdList.head else ""  // AttempId
+
     val courseId = f.`object`.get.rollup.getOrElse(RollUp("", "", "", "")).l1 // CourseId
     val contentId = f.`object`.get.id // ContentId
     val event = JSONUtils.serialize(f)
@@ -135,3 +139,4 @@ object AssessmentCorrectionModel extends IBatchModelTemplate[String,V3Event,Asse
     }
   }
 }
+
