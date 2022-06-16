@@ -1,7 +1,0 @@
-flask
-requests
-sqlparse
-ciso8601
-dataclasses-json
-jsons
-APScheduler==3.7.0
