@@ -59,6 +59,7 @@ class TestAssessmentCorrectionModel extends SparkSpec(null) with MockFactory {
     val output = AssessmentCorrectionModel.execute(data, Option(mapConfig))
 
     output.count() should be (1)
+
     val assessEvent = output.collect()
     assessEvent.map {f => f.batchId }.toList should contain allElementsOf List("batch-001")
     assessEvent.map {f => f.courseId }.toList should contain allElementsOf List("do_2130694768149053441103")
@@ -98,5 +99,6 @@ class TestAssessmentCorrectionModel extends SparkSpec(null) with MockFactory {
 
     val mapConfig = JSONUtils.deserialize[Map[String, AnyRef]](strConfig1)
     val output = AssessmentCorrectionModel.execute(data, Option(mapConfig))
+
   }
 }
