@@ -14,7 +14,7 @@ import org.sunbird.userorg.job.report.BaseReportsJob
 
 import scala.collection.immutable.List
 
-object CollectionSummaryJobV2 extends optional.Application with IJob with BaseReportsJob {
+object CollectionSummaryJobV2 extends IJob with BaseReportsJob {
   val cassandraUrl = "org.apache.spark.sql.cassandra"
   private val userCacheDBSettings = Map("table" -> "user", "infer.schema" -> "true", "key.column" -> "userid")
   private val userEnrolmentDBSettings = Map("table" -> "user_enrolments", "keyspace" -> AppConf.getConfig("sunbird.user.report.keyspace"), "cluster" -> "ReportCluster");
