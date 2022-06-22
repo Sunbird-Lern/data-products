@@ -3,8 +3,9 @@ package org.sunbird.userorg.job.report
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
-import org.sunbird.userorg.job.report.StateAdminReportJob.locationIdList
 import org.sunbird.cloud.storage.conf.AppConf
+import org.sunbird.lms.job.report.BaseReportsJob
+import org.sunbird.userorg.job.report.StateAdminReportJob.locationIdList
 
 trait StateAdminReportHelper extends BaseReportsJob {
   val tempDir = AppConf.getConfig("admin.metrics.temp.dir")
@@ -12,8 +13,8 @@ trait StateAdminReportHelper extends BaseReportsJob {
   val summaryDir = s"$tempDir/summary"
   val renamedDir = s"$tempDir/renamed"
   val detailDir = s"$tempDir/detail"
-  
-  def locationData() (implicit sparkSession: SparkSession) = {
+
+  def locationData()(implicit sparkSession: SparkSession) = {
     val locationDF = loadData(sparkSession, Map("table" -> "location", "keyspace" -> sunbirdKeyspace), None).select(
       col("id").as("locid"),
       col("code").as("loccode"),
@@ -62,11 +63,11 @@ trait StateAdminReportHelper extends BaseReportsJob {
   }
 
   def loadOrganisationSlugDF()(implicit sparkSession: SparkSession) = {
-    loadOrganisationData.filter(col(colName = "slug").isNotNull).cache();
+    loadOrganisationData.filter(col(colName = "slug").isNotNull).cache()
   }
-  
+
   def loadOrganisationData()(implicit sparkSession: SparkSession) = {
-    loadData(sparkSession, Map("table" -> "organisation", "keyspace" -> sunbirdKeyspace), None).select(
+    loadData(sparkSession, Map("table" -> "organisation", "keyspace" -> sunbirdKeyspace)).select(
       col("id").as("id"),
       col("rootorgid").as("rootorgid"),
       col("channel").as("channel"),

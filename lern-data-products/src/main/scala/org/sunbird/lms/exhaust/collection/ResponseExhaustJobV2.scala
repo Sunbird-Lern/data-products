@@ -6,21 +6,25 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.JobLogger
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
-import org.sunbird.core.exhaust.ExhaustUtil
+import org.sunbird.core.ExhaustUtil
 
-object ResponseExhaustJobV2 extends optional.Application with BaseCollectionExhaustJob {
+object ResponseExhaustJobV2 extends BaseCollectionExhaustJob {
 
-  override def getClassName = "org.sunbird.analytics.exhaust.collection.ResponseExhaustJobV2"
+  override def getClassName = "org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2"
+
   override def jobName() = "ResponseExhaustJobV2";
+
   override def jobId() = "response-exhaust";
+
   override def getReportPath() = "response-exhaust/";
+
   override def getReportKey() = "response";
 
-  private val persistedDF:scala.collection.mutable.ListBuffer[DataFrame] = scala.collection.mutable.ListBuffer[DataFrame]();
+  private val persistedDF: scala.collection.mutable.ListBuffer[DataFrame] = scala.collection.mutable.ListBuffer[DataFrame]();
 
   private val assessmentAggDBSettings = Map("table" -> "assessment_aggregator", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
 
-  private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid",  "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid",
+  private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid",
     "questiontype", "questiontitle", "questiondescription", "questionduration", "questionscore", "questionmaxscore", "questionoption", "questionresponse");
   private val columnsOrder = List("Collection Id", "Collection Name", "Batch Id", "Batch Name", "User UUID", "QuestionSet Id", "QuestionSet Title", "Attempt Id", "Attempted On",
     "Question Id", "Question Type", "Question Title", "Question Description", "Question Duration", "Question Score", "Question Max Score", "Question Options", "Question Response");
@@ -29,8 +33,9 @@ object ResponseExhaustJobV2 extends optional.Application with BaseCollectionExha
     "questiontype" -> "Question Type", "questiontitle" -> "Question Title", "questiondescription" -> "Question Description", "questionduration" -> "Question Duration",
     "questionscore" -> "Question Score", "questionmaxscore" -> "Question Max Score", "questionoption" -> "Question Options", "questionresponse" -> "Question Response")
 
-  case class AssessmentData(user_id: String, course_id: String,batch_id: String,content_id: String, attempt_id: String,created_on: Option[String],grand_total: Option[String],last_attempted_on: Option[String],question: List[Question],total_max_score: Option[Double],total_score: Option[Double],updated_on: Option[String]) extends scala.Product with scala.Serializable
-  case class Question(id: String, assess_ts: String,max_score: Double, score: Double,`type`: String,title: String,resvalues: List[Map[String, String]],params: List[Map[String, String]],description: String,duration: Double) extends scala.Product with scala.Serializable
+  case class AssessmentData(user_id: String, course_id: String, batch_id: String, content_id: String, attempt_id: String, created_on: Option[String], grand_total: Option[String], last_attempted_on: Option[String], question: List[Question], total_max_score: Option[Double], total_score: Option[Double], updated_on: Option[String]) extends scala.Product with scala.Serializable
+
+  case class Question(id: String, assess_ts: String, max_score: Double, score: Double, `type`: String, title: String, resvalues: List[Map[String, String]], params: List[Map[String, String]], description: String, duration: Double) extends scala.Product with scala.Serializable
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     val assessmentDF = getAssessmentDF(userEnrolmentDF, collectionBatch).persist();
@@ -61,7 +66,7 @@ object ResponseExhaustJobV2 extends optional.Application with BaseCollectionExha
 
     val joinedDF = try {
       val assessBlobData = prepareReportDf(getAssessmentBlobDF(batch, config))
-      preparedAssessAggregateData.unionByName(assessBlobData).dropDuplicates("course_id","batch_id", "user_id", "attempt_id", "questionid")
+      preparedAssessAggregateData.unionByName(assessBlobData).dropDuplicates("course_id", "batch_id", "user_id", "attempt_id", "questionid")
     } catch {
       case e: Exception => {
         JobLogger.log("Blob does not contain any file for batchid: " + batch.batchId)
@@ -76,19 +81,19 @@ object ResponseExhaustJobV2 extends optional.Application with BaseCollectionExha
     val azureFetcherConfig = config.modelParams.get("assessmentFetcherConfig").asInstanceOf[Map[String, AnyRef]]
 
     val store = azureFetcherConfig("store").asInstanceOf[String]
-    val format:String = azureFetcherConfig.getOrElse("format", "csv").asInstanceOf[String]
+    val format: String = azureFetcherConfig.getOrElse("format", "csv").asInstanceOf[String]
     val filePath = azureFetcherConfig.getOrElse("filePath", "archival-data/").asInstanceOf[String]
     val container = azureFetcherConfig.getOrElse("container", "reports").asInstanceOf[String]
 
-    val assessAggData = ExhaustUtil.getArchivedData(store, filePath, container, Map("batchId" -> batch.batchId, "collectionId"-> batch.collectionId), Option(format))
+    val assessAggData = ExhaustUtil.getArchivedData(store, filePath, container, Map("batchId" -> batch.batchId, "collectionId" -> batch.collectionId), Option(format))
 
     assessAggData.withColumn("question", UDFUtils.convertStringToList(col("question")))
-      .withColumn("last_attempted_on", from_unixtime(col("last_attempted_on")/1000, "yyyy-MM-dd HH:mm:ss"))
+      .withColumn("last_attempted_on", from_unixtime(col("last_attempted_on") / 1000, "yyyy-MM-dd HH:mm:ss"))
   }
 
   def prepareReportDf(df: DataFrame): DataFrame = {
-    df.withColumn("questiondata",explode_outer(col("question")))
-      .withColumn("questionid" , col("questiondata.id"))
+    df.withColumn("questiondata", explode_outer(col("question")))
+      .withColumn("questionid", col("questiondata.id"))
       .withColumn("questiontype", col("questiondata.type"))
       .withColumn("questiontitle", col("questiondata.title"))
       .withColumn("questiondescription", col("questiondata.description"))
@@ -101,5 +106,3 @@ object ResponseExhaustJobV2 extends optional.Application with BaseCollectionExha
       .drop("question", "questiondata", "question_data", "created_on", "updated_on")
   }
 }
-
-

@@ -1,15 +1,16 @@
-package org.sunbird.userorg.job.report
+package org.sunbird.user.job.report
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.sunbird.core.util.SparkSpec
-import org.scalamock.scalatest.MockFactory
-import org.sunbird.core.util.EmbeddedCassandra
-import org.sunbird.cloud.storage.conf.AppConf
-import java.io.File
-
-import org.ekstep.analytics.framework.{Fetcher, FrameworkContext, JobConfig}
 import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
+import org.ekstep.analytics.framework.{Fetcher, FrameworkContext, JobConfig}
+import org.scalamock.scalatest.MockFactory
+import org.sunbird.core.util.{EmbeddedCassandra, SparkSpec}
+import org.sunbird.cloud.storage.conf.AppConf
+import org.sunbird.lms.job.report.BaseReportsJob
+import org.sunbird.userorg.job.report.StateAdminGeoReportJob
+
+import java.io.File
 
 class TestStateAdminGeoReportJob extends SparkSpec(null) with MockFactory {
 

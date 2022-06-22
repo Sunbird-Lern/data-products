@@ -9,7 +9,7 @@ import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 
 object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
 
-  override def getClassName = "org.sunbird.analytics.exhaust.collection.ProgressExhaustJobV2"
+  override def getClassName = "org.sunbird.lms.exhaust.collection.ProgressExhaustJobV2"
 
   override def jobName() = "ProgressExhaustJobV2";
 
@@ -74,7 +74,7 @@ object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
       // Converting the map object to dataframe columns format ex = [do_1128870328040161281204 - Score -> 100%, total_sum_score -> 100.0%] to df column and value
       val updatedAggregateKeys: Array[Column] = keys.map(f => aggregateDF.col("scorePercentage").getItem(f).as(f))
       // Merge the aggregate columns and score metrics columns
-      val updatedAggDF:DataFrame = aggregateDF.select(col("*") +: updatedAggregateKeys: _*)
+      val updatedAggDF: DataFrame = aggregateDF.select(col("*") +: updatedAggregateKeys: _*)
       updatedEnrolmentDF.join(updatedAggDF, updatedEnrolmentDF.col("userid") === updatedAggDF.col("user_id") && updatedEnrolmentDF.col("courseid") === updatedAggDF.col("activity_id"),
         "left_outer").drop("user_id", "activity_id", "context_id", "scorePercentage")
     } else updatedEnrolmentDF
@@ -158,10 +158,11 @@ object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
       Map("total_sum_score" -> "")
     }
   }
+
   val computePercentage = udf[Map[String, String], Map[String, Double]](computePercentageFn)
 
   /**
-   *  This UDF function used to filter the only selfAssess supported contents
+   * This UDF function used to filter the only selfAssess supported contents
    */
   def filterSupportedContentTypesFn(agg: Map[String, Double], supportedContents: Seq[String]): Map[String, Double] = {
     val identifiers = agg.filter(x => x._1.startsWith("score")).keys.map(y => y.split(":")(1))

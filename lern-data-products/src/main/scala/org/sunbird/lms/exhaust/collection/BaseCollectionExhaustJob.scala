@@ -4,6 +4,7 @@ import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
 import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
+import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
@@ -16,16 +17,13 @@ import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, Storag
 import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.DecryptUtil
+import org.sunbird.core.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
+import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
-import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
-import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
-
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 
@@ -57,8 +55,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   /** START - Job Execution Methods */
   def main(config: String)(implicit sc: Option[SparkContext] = None, fc: Option[FrameworkContext] = None) {
 
-    JobLogger.init(jobName)
-    JobLogger.start(s"$jobName started executing - ver3", Option(Map("config" -> config, "model" -> jobName)))
+    JobLogger.init(jobName())
+    JobLogger.start(s"${jobName()} started executing - ver3", Option(Map("config" -> config, "model" -> jobName)))
 
     implicit val jobConfig = JSONUtils.deserialize[JobConfig](config)
     implicit val spark: SparkSession = openSparkSession(jobConfig)
@@ -79,7 +77,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
         JobLogger.log(ex.getMessage, None, ERROR);
         JobLogger.end(jobName + " execution failed", "FAILED", Option(Map("model" -> jobName, "statusMsg" -> ex.getMessage)));
         // generate metric event and push it to kafka topic in case of failure
-        val metricEvent = getMetricJson(jobName, Option(new DateTime().toString(CommonUtil.dateFormat)), "FAILED", List())
+        val metricEvent = getMetricJson(jobName(), Option(new DateTime().toString(CommonUtil.dateFormat)), "FAILED", List())
         // $COVERAGE-OFF$
         if (AppConf.getConfig("push.metrics.kafka").toBoolean)
           KafkaDispatcher.dispatch(Array(metricEvent), Map("topic" -> AppConf.getConfig("metric.kafka.topic"), "brokerList" -> AppConf.getConfig("metric.kafka.broker")))
@@ -106,7 +104,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val custodianOrgId = getCustodianOrgId();
 
     val res = CommonUtil.time({
-      val userDF = getUserCacheDF(getUserCacheColumns(), true)
+      val userDF = getUserCacheDF(getUserCacheColumns(), persist = true)
       (userDF.count(), userDF)
     })
     JobLogger.log("Time to fetch enrolment details", Some(Map("timeTaken" -> res._1, "count" -> res._2._1)), INFO)
@@ -115,7 +113,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       case "standalone" =>
         executeStandAlone(custodianOrgId, userCachedDF)
       case _ =>
-        executeOnDemand(custodianOrgId, userCachedDF);
+        executeOnDemand(custodianOrgId, userCachedDF)
     }
   }
 
@@ -141,7 +139,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     JobLogger.log("Total Requests are ", Some(Map("jobId" -> jobId(), "totalRequests" -> requests.length)), INFO)
 
     val dupRequests = getDuplicateRequests(requests)
-    val dupRequestsList = dupRequests.map(f => f._2).flatMap(f => f).map(f => f.request_id).toList
+    val dupRequestsList = dupRequests.values.flatten.map(f => f.request_id).toList
     val filteredRequests = requests.filter(f => ! dupRequestsList.contains(f.request_id))
     JobLogger.log("The Request count details", Some(Map("Total Requests" -> requests.length, "filtered Requests" -> filteredRequests.length, "Duplicate Requests" -> dupRequestsList.length)), INFO)
 
@@ -150,7 +148,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val result = for (request <- filteredRequests) yield {
       val updRequest: JobRequest = {
         try {
-          val processedCount = if(requestsCompleted.isEmpty) 0 else requestsCompleted.filter(f => f.channel.equals(request.requested_channel)).size
+          val processedCount = if(requestsCompleted.isEmpty) 0 else requestsCompleted.count(f => f.channel.equals(request.requested_channel))
           val processedSize = if(requestsCompleted.isEmpty) 0 else requestsCompleted.filter(f => f.channel.equals(request.requested_channel)).map(f => f.fileSize).sum
           JobLogger.log("Channel details at executeOnDemand", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed batches" -> processedCount)), INFO)
 
@@ -177,8 +175,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
         }
       }
       // check for duplicates and update with same urls
-      if (dupRequests.get(updRequest.request_id).nonEmpty){
-        val dupReq = dupRequests.get(updRequest.request_id).get
+      if (dupRequests.contains(updRequest.request_id)){
+        val dupReq = dupRequests(updRequest.request_id)
         val res = for (req <- dupReq) yield {
           val dupUpdReq = markDuplicateRequest(req, updRequest)
           dupUpdReq
@@ -211,7 +209,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
 
   def processRequest(request: JobRequest, custodianOrgId: String, userCachedDF: DataFrame, storageConfig: StorageConfig, processedRequests: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): JobRequest = {
     val batchLimit: Int = AppConf.getConfig("data_exhaust.batch.limit.per.request").toInt
-    val collectionConfig = JSONUtils.deserialize[CollectionConfig](request.request_data);
+    val collectionConfig = JSONUtils.deserialize[CollectionConfig](request.request_data)
     val batches = if (collectionConfig.batchId.isDefined) List(collectionConfig.batchId.get) else collectionConfig.batchFilter.getOrElse(List[String]())
     if (batches.length <= batchLimit) {
       val completedBatches :ListBuffer[ProcessedRequest]= if(request.processed_batches.getOrElse("[]").equals("[]")) ListBuffer.empty[ProcessedRequest] else {
@@ -264,7 +262,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   def getCollectionBatches(batchId: Option[String], batchFilter: Option[List[String]], searchFilter: Option[Map[String, AnyRef]], custodianOrgId: String, requestedOrgId: String)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): (String,List[CollectionBatch]) = {
 
     val encoder = Encoders.product[CollectionBatch];
-    val collectionBatches = getCollectionBatchDF(false);
+    val collectionBatches = getCollectionBatchDF(persist = false)
     if (batchId.isDefined || batchFilter.isDefined) {
       val batches = validateBatches(collectionBatches, batchId, batchFilter)
       if (batches.count() > 0) {
@@ -329,7 +327,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
 
   def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest] )(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
 
-    var processedCount = if(processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).size
+    var processedCount = if(processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if(processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
     JobLogger.log("Channel details at processBatches", Some(Map("channel" -> requestChannel, "file size" -> processedSize, "completed batches" -> processedCount)), INFO)
 
@@ -338,7 +336,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val parallelProcessLimit = AppConf.getConfig("exhaust.parallel.batch.load.limit").toInt
     val parallelBatches = batches.sliding(parallelProcessLimit,parallelProcessLimit).toList
     for(parallelBatch <- parallelBatches) yield {
-      val userEnrolmentDf = getUserEnrolmentDF(parallelBatch.map(f => f.batchId), true)
+      val userEnrolmentDf = getUserEnrolmentDF(parallelBatch.map(f => f.batchId), persist = true)
       val batchResponseList= for (batch <- parallelBatch) yield {
         if (checkRequestProcessCriteria(processedCount, processedSize)) {
           val userEnrolmentBatchDF = userEnrolmentDf.where(col("batchid") === batch.batchId && col("courseid") === batch.collectionId)
@@ -371,7 +369,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       userEnrolmentDf.unpersist(true);
       batchResponseList
     }
-  }.flatMap(f=>f)
+  }.flatten
 
   // returns Map of request_id and list of its duplicate requests
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
@@ -385,9 +383,9 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       // get hash
       val key = Array(req.request_data, req.encryption_key.getOrElse(""), req.requested_by).mkString("|")
       val hash = MessageDigest.getInstance("MD5").digest(key.getBytes).map("%02X".format(_)).mkString
-      if(reqHashMap.get(hash).isEmpty) reqHashMap.put(hash, List(req))
+      if(!reqHashMap.contains(hash)) reqHashMap.put(hash, List(req))
       else {
-        val newList = reqHashMap.get(hash).get ++ List(req)
+        val newList = reqHashMap(hash) ++ List(req)
         reqHashMap.put(hash, newList)
       }
     }
@@ -443,14 +441,15 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
 
   def getUserEnrolmentDF(batchIds: List[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
     val cols = getEnrolmentColumns();
-    implicit val sqlContext = new SQLContext(spark.sparkContext)
-    import sqlContext.implicits._
+    // implicit val sqlContext = new SQLContext(spark.sparkContext)
+    // import sqlContext.implicits._
+    import spark.implicits._
     val userDf = loadData(userEnrolmentDBSettings, cassandraFormat, new StructType())
     val batchDf = spark.sparkContext.parallelize(batchIds).toDF("batchid")
-    val df =batchDf.join(userDf,Seq("batchid")).where(lower(col("active")).equalTo("true")
+    val df = batchDf.join(userDf,Seq("batchid")).where(lower(col("active")).equalTo("true")
        && (col("enrolleddate").isNotNull || col("enrolled_date").isNotNull))
       .withColumn("enrolleddate", UDFUtils.getLatestValue(col("enrolled_date"), col("enrolleddate")))
-      .select(cols.head, cols.tail: _*);
+      .select(cols.head, cols.tail: _*)
 
     if (persist) df.persist() else df
   }
@@ -458,7 +457,6 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   def searchContent(searchFilter: Map[String, AnyRef])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     // TODO: Handle limit and do a recursive search call
     implicit val sqlContext = new SQLContext(spark.sparkContext)
-    import sqlContext.implicits._
 
     val apiURL = Constants.COMPOSITE_SEARCH_URL
     val request = JSONUtils.serialize(searchFilter)
@@ -589,7 +587,7 @@ object UDFUtils extends Serializable {
 
   def completionPercentageFunction(statusMap: Map[String, Int], leafNodesCount: Int): Int = {
     try {
-      val completedContent = statusMap.filter(p => p._2 == 2).size;
+      val completedContent = statusMap.count(p => p._2 == 2)
       if(completedContent >= leafNodesCount) 100 else Math.round(((completedContent.toFloat/leafNodesCount) * 100))
     } catch {
       case ex: Exception =>

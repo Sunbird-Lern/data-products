@@ -1,6 +1,7 @@
 ## Data products deployment ##
 - name: Ensure azure blob storage container exists
   command: az storage container create --name {{ bucket }}
+  when: dp_object_store_type == "azure"
   tags:
     - always
 
@@ -10,7 +11,7 @@
     - dataproducts
 
 - name: Copy Core Data Products to azure blob
-  command: az storage blob upload -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_batch_module_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_batch_module_artifact }}
+  command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_batch_module_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_batch_module_artifact }}
   async: 3600
   poll: 10
   tags:
@@ -23,7 +24,7 @@
     - ed-dataproducts
 
 - name: Copy Ed Data Products to azure blob
-  command: az storage blob upload -c {{ bucket }} --name models-{{ model_version }}/lern-data-products-1.0.jar -f {{ analytics.home }}/models-{{ model_version }}/lern-data-products-1.0/lern-data-products-1.0.jar
+  command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/lern-data-products-1.0.jar -f {{ analytics.home }}/models-{{ model_version }}/lern-data-products-1.0/lern-data-products-1.0.jar
   async: 3600
   poll: 10
   tags:
@@ -35,7 +36,7 @@
     - framework
 
 - name: Copy Framework Library to azure blob
-  command: az storage blob upload --debug -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_core_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_core_artifact }}
+  command: az storage blob upload --overwrite --debug -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_core_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_core_artifact }}
   async: 3600
   poll: 10
   tags:
@@ -47,7 +48,7 @@
     - framework  
 
 - name: Copy Scruid Library to azure blob
-  command: az storage blob upload -c {{ bucket }} --name models-{{ model_version }}/{{ scruid_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ scruid_artifact }}
+  command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/{{ scruid_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ scruid_artifact }}
   async: 3600
   poll: 10
   tags:
@@ -96,7 +97,7 @@
     - framework-spark-cluster       
 
 - name: Copy configuration file to azure blob
-  command: az storage blob upload -c {{ bucket }} -f {{ analytics.home }}/models-{{ model_version }}/application.conf --name models-{{ model_version }}/application.conf
+  command: az storage blob upload --overwrite -c {{ bucket }} -f {{ analytics.home }}/models-{{ model_version }}/application.conf --name models-{{ model_version }}/application.conf
   async: 3600
   poll: 10
   tags:
@@ -109,6 +110,11 @@
 - name: Copy Scripts
   template: src={{ item }}.j2 dest={{ analytics.home }}/scripts/{{ item }}.sh mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   with_items: "{{ analytics.scripts }}"
+  tags: [ dataproducts, framework, ed-dataproducts ]
+  when: dockdataproducts is undefined
+
+- name: Copy python sanity check script file
+  template: src=exhaust_sanity_check.py.j2 dest={{ analytics.home }}/scripts/exhaust_sanity_check.py
   tags: [ dataproducts, framework, ed-dataproducts ]
   when: dockdataproducts is undefined
 
@@ -277,6 +283,22 @@
     - default-jobs
     - spark-jobs
 
+- name: Create uci-private-exhaust cron job
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh uci-private-exhaust"
+  with_dict: "{{ run_uci_private_exhaust_job }}"
+  tags:
+    - cronjobs
+    - default-jobs
+    - spark-jobs
+
+- name: Create uci-response-exhaust cron job
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh uci-response-exhaust"
+  with_dict: "{{ run_uci_response_exhaust_job }}"
+  tags:
+    - cronjobs
+    - default-jobs
+    - spark-jobs 
+
 - name: Copy sourcing-summary ingestion spec
   copy: src="sourcing-ingestion-spec.json" dest={{ analytics.home }}/scripts/ mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags:
@@ -402,3 +424,18 @@
     var: submitOutput 
   tags:
     - parallel-jobs-submit      
+
+# Execute Exhaust job sanity check script tasks
+
+- name: Install required python packages
+  pip:
+    name:
+      - requests
+  tags:
+    - run-sanity    
+
+- name: Run sanity check python script
+  shell: python {{ analytics.home }}/scripts/exhaust_sanity_check.py
+  tags:
+    - run-sanity
+  register: SanityCheckStatus

@@ -1,24 +1,22 @@
 package org.sunbird.lms.exhaust.collection
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
-import org.ekstep.analytics.framework.FrameworkContext
-import org.ekstep.analytics.framework.JobConfig
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.JSONUtils
+import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 
 case class UserAggData(user_id: String, activity_id: String, completedCount: Int, context_id: String)
 case class CourseData(courseid: String, leafNodesCount: String, level1Data: List[Level1Data])
 case class Level1Data(l1identifier: String, l1leafNodesCount: String)
 case class AssessmentData(courseid: String, assessmentIds: List[String])
 
-object ProgressExhaustJob extends optional.Application with BaseCollectionExhaustJob {
+object ProgressExhaustJob extends BaseCollectionExhaustJob {
 
-  override def getClassName = "org.sunbird.analytics.exhaust.collection.ProgressExhaustJob"
+  override def getClassName = "org.sunbird.lms.exhaust.collection.ProgressExhaustJob"
   override def jobName() = "ProgressExhaustJob";
   override def jobId() = "progress-exhaust";
   override def getReportPath() = "progress-exhaust/";
@@ -197,7 +195,7 @@ object ProgressExhaustJob extends optional.Application with BaseCollectionExhaus
       })
       val courseId = list.head.courseid
       val leafNodeCount = list.head.leafNodesCount
-      val level1Data = list.map(x => x.level1Data).flatten.toList
+      val level1Data = list.flatMap(x => x.level1Data)
       CourseData(courseId, leafNodeCount, level1Data)
     } else prevData
   }

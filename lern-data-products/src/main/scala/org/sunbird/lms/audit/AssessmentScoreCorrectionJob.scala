@@ -12,7 +12,7 @@ import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
-import org.sunbird.core.exhaust.BaseReportsJob
+import org.sunbird.core.BaseReportsJob
 
 import java.io._
 import scala.collection.immutable.List
@@ -26,8 +26,8 @@ case class AssessmentCorrectionMetrics(batchId: String, contentId: String, inval
 case class ContentMeta(totalQuestions: Int, contentType: String, contentId: String)
 
 
-object AssessmentScoreCorrectionJob extends optional.Application with IJob with BaseReportsJob {
-  implicit val className: String = "org.sunbird.analytics.audit.AssessmentScoreCorrectionJob"
+object AssessmentScoreCorrectionJob extends IJob with BaseReportsJob {
+  implicit val className: String = "org.sunbird.lms.audit.AssessmentScoreCorrectionJob"
   val cassandraFormat = "org.apache.spark.sql.cassandra"
   private val assessmentAggDBSettings = Map("table" -> "assessment_aggregator", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster")
   private val userEnrolmentDBSettings = Map("table" -> "user_enrolments", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "ReportCluster")

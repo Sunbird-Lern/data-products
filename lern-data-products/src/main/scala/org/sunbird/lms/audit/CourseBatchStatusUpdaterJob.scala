@@ -9,20 +9,20 @@ import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
-import org.sunbird.userorg.job.report.BaseReportsJob
 import org.apache.spark.sql.cassandra._
-import org.sunbird.lms.exhaust.collection.UDFUtils
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, TimeZone}
 import org.apache.spark
+import org.sunbird.lms.exhaust.collection.UDFUtils
+import org.sunbird.lms.job.report.BaseReportsJob
 
 import scala.collection.immutable.List
 
 case class CourseBatchStatusMetrics(unStarted: Long, inProgress: Long, completed: Long)
 
-object CourseBatchStatusUpdaterJob extends optional.Application with IJob with BaseReportsJob {
-  implicit val className: String = "org.sunbird.analytics.audit.CourseBatchStatusUpdaterJob"
+object CourseBatchStatusUpdaterJob extends IJob with BaseReportsJob {
+  implicit val className: String = "org.sunbird.lms.audit.CourseBatchStatusUpdaterJob"
   val cassandraFormat = "org.apache.spark.sql.cassandra"
   private val collectionBatchDBSettings = Map("table" -> "course_batch", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster")
 
@@ -67,6 +67,7 @@ object CourseBatchStatusUpdaterJob extends optional.Application with IJob with B
 
   def updateBatchStatus(updaterConfig: JobConfig, collectionBatchDF: DataFrame)(implicit sc: SparkContext, spark: SparkSession): CourseBatchStatusMetrics = {
     val currentDate = getDateFormat().format(new Date)
+    JobLogger.log(s"Update batch status started", None, INFO)
     val computedDF = collectionBatchDF.withColumn("updated_status",
       when(unix_timestamp(lit(currentDate), "yyyy-MM-dd").gt(unix_timestamp(col("enddate"), "yyyy-MM-dd")), 2).otherwise(
         when(unix_timestamp(lit(currentDate), "yyyy-MM-dd").geq(unix_timestamp(col("startdate"), "yyyy-MM-dd")), 1).otherwise(col("status"))
@@ -91,7 +92,7 @@ object CourseBatchStatusUpdaterJob extends optional.Application with IJob with B
       .withColumn("startdate", UDFUtils.getLatestValue(convertDate(col("start_date")), col("startdate")))
       .withColumn("enddate", UDFUtils.getLatestValue(convertDate(col("end_date")), col("enddate")))
       .withColumn("enrollmentenddate", UDFUtils.getLatestValue(convertDate(col("enrollment_enddate")), col("enrollmentenddate")))
-      .select("courseid", "batchid", "startdate", "name", "enddate", "enrollmentenddate", "enrollmenttype", "createdfor", "status")
+      .select("courseid", "batchid", "startdate", "name", "enddate", "enrollmentenddate", "enrollmenttype", "createdfor", "status").cache()
   }
 
   def getCourseMetaData(row: Row, dateFormat: SimpleDateFormat): Map[String, AnyRef] = {

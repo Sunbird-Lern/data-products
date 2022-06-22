@@ -6,10 +6,10 @@ import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.scalamock.scalatest.MockFactory
-import org.sunbird.core.exhaust.BaseReportsJob
+import org.sunbird.lms.job.report.BaseReportSpec
+import org.sunbird.core.util.{EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
+import org.sunbird.core.BaseReportsJob
 import org.sunbird.lms.exhaust.collection.{AssessmentData, CollectionBatch, CourseData, Metrics, ProgressExhaustJob}
-import org.sunbird.userorg.job.report.BaseReportSpec
-import org.sunbird.core.util.{BaseSpec, EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
 import redis.embedded.RedisServer
 
 import java.text.SimpleDateFormat
@@ -20,7 +20,7 @@ case class ProgressExhaustReport(`Collection Id`: String, `Collection Name`: Str
                                  `Total Score`: String, `Cluster Name`: String, `User Type`: String, `User Sub Type`: String)
 case class ContentHierarchy(identifier: String, hierarchy: String)
 
-class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJob {
+class TestProgressExhaustJob extends BaseReportSpec with MockFactory with BaseReportsJob {
 
   val jobRequestTable = "job_request"
   implicit var spark: SparkSession = _
@@ -70,7 +70,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -118,7 +118,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
       pResponse.getString("iteration") should be ("0")
     }
 
-//    new HadoopFileUtil().delete(spark.sparkContext.hadoopConfiguration, outputLocation)
+    new HadoopFileUtil().delete(spark.sparkContext.hadoopConfiguration, outputLocation)
 
     //Test coverage for filterAssessmentsFromHierarchy method
     val assessmentData = ProgressExhaustJob.filterAssessmentsFromHierarchy(List(), Map(), AssessmentData("do_1130928636168192001667", List()))
@@ -132,7 +132,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-001\",\"batch-004\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -153,7 +153,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key,processed_batches) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-001\",\"batch-004\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12','[{\"batchId\":\"batch-001\",\"filePath\":\"reports/progress-exhaust/37564CF8F134EE7532F125651B51D17F/batch-001_progress_20210509.csv\",\"fileSize\":0}]');")
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -173,17 +173,19 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
   it should "test the exhaust report with batches limit by channel and stop request in between" in {
 
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
-    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-1', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-004\", \"batch-002\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
-    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-2', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-003\", \"batch-004\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-3', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-004\", \"batch-005\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-4', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-002\", \"batch-003\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
+    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-1', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-004\", \"batch-002\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
+    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-2', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-003\", \"batch-004\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
     ProgressExhaustJob.execute()
+
+    Thread.sleep(5000)
 
     val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='progress-exhaust' and request_id='37564CF8F134EE7532F125651B51D17F-4'")
 
@@ -194,7 +196,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     }
 
     val pResponse2 = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='progress-exhaust' and request_id='37564CF8F134EE7532F125651B51D17F-3'")
-    val reportDate = getDate("yyyyMMdd").format(Calendar.getInstance().getTime())
+    val reportDate = getDate("yyyyMMdd").format(Calendar.getInstance().getTime)
 
     while(pResponse2.next()) {
       pResponse2.getString("status") should be ("SUCCESS")
@@ -206,12 +208,12 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
   it should "test the exhaust report file size limit by channel and stop request in between" in {
 
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
-    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-1', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-004\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-2', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-001\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-3', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-002\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
+    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F-1', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-004\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -226,7 +228,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     }
 
     val pResponse2 = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='progress-exhaust' and request_id='37564CF8F134EE7532F125651B51D17F-2'")
-    val reportDate = getDate("yyyyMMdd").format(Calendar.getInstance().getTime())
+    val reportDate = getDate("yyyyMMdd").format(Calendar.getInstance().getTime)
 
     while(pResponse2.next()) {
       pResponse2.getString("status") should be ("SUCCESS")
@@ -242,7 +244,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-02', '37564CF8F134EE7532F125651B51D17F-2', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-004\", \"batch-003\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -272,7 +274,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     import sqlContext.implicits._
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -318,7 +320,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
   it should "validate the report path" in {
     val batch1 = "batch-001"
     val requestId = "37564CF8F134EE7532F125651B51D17F"
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
     val onDemandModeFilepath = ProgressExhaustJob.getFilePath(batch1, requestId)
@@ -336,7 +338,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
 
   it should "Generate a report for StandAlone Mode" in {
    implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"standalone","batchFilters":["TPD"],"searchFilter":{"request":{"filters":{"status":["Live"],"contentType":"Course"},"fields":["identifier","name","organisation","channel"],"limit":10}},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"standalone","batchFilters":["TPD"],"searchFilter":{"request":{"filters":{"status":["Live"],"contentType":"Course"},"fields":["identifier","name","organisation","channel"],"limit":10}},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
     ProgressExhaustJob.execute()
@@ -385,7 +387,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -413,7 +415,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-01\", \"batch-001\", \"batch-001\"]}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -465,7 +467,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchFilter\": [\"batch-01\", \"batch-02\"]}',  'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -492,7 +494,7 @@ class TestProgressExhaustJob extends BaseSpec with MockFactory with BaseReportsJ
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-005\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
