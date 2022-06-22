@@ -1,4 +1,4 @@
-package org.sunbird.user.job.report
+package org.sunbird.userorg.job.report
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SparkSession}
