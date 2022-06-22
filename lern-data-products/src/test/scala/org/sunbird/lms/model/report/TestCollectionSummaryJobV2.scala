@@ -1,16 +1,14 @@
-package org.sunbird.userorg.job.report
+package org.sunbird.lms.model.report
 
-import java.io.File
-
-import org.apache.spark.sql.functions.{udf, _}
-import org.apache.spark.sql.types.{ArrayType, MapType, StringType, StructType}
-import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.{CourseUtils, UserData}
+import org.sunbird.lms.job.report.CollectionSummaryJobV2
+import org.sunbird.userorg.job.report.{BaseReportSpec, BaseReportsJob}
 
+import java.io.File
 import scala.collection.mutable
 
 

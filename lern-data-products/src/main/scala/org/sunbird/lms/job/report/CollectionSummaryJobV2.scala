@@ -1,21 +1,16 @@
-package org.sunbird.userorg.job.report
+package org.sunbird.lms.job.report
 
 import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
-import org.apache.spark.sql._
-import org.apache.spark.sql.cassandra.CassandraSparkSessionFunctions
-import org.apache.spark.sql.functions.{when, _}
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.storage.StorageLevel
-import org.ekstep.analytics.framework.Level.{ERROR, INFO}
+import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
-import org.ekstep.analytics.framework.util.DatasetUtil.extensions
-import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
+import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.sunbird.lms.exhaust.collection.UDFUtils
 import org.sunbird.core.util.{CourseUtils, UserData}
+import org.sunbird.lms.exhaust.collection.UDFUtils
+import org.sunbird.userorg.job.report.BaseReportsJob
 
 import scala.collection.immutable.List
 
@@ -29,6 +24,7 @@ object CollectionSummaryJobV2 extends optional.Application with IJob with BaseRe
 
   implicit val className: String = "org.sunbird.analytics.job.report.CollectionSummaryJobV2"
   val jobName = "CollectionSummaryJobV2"
+
   // $COVERAGE-OFF$ Disabling scoverage for main and execute method
   override def main(config: String)(implicit sc: Option[SparkContext] = None, fc: Option[FrameworkContext] = None) {
     JobLogger.init(jobName)
@@ -72,7 +68,7 @@ object CollectionSummaryJobV2 extends optional.Application with IJob with BaseRe
     fetchData(spark, courseBatchDBSettings, cassandraUrl, new StructType())
       .withColumn("startdate", UDFUtils.getLatestValue(col("start_date"), col("startdate")))
       .withColumn("enddate", UDFUtils.getLatestValue(col("end_date"), col("enddate")))
-      .select("courseid", "batchid", "enddate", "startdate", "cert_templates" , "name")
+      .select("courseid", "batchid", "enddate", "startdate", "cert_templates", "name")
       .withColumnRenamed("name", "batchname")
       .withColumn("hascertified", when(col("cert_templates").isNotNull && size(col("cert_templates").cast("map<string, map<string, string>>")) > 0, "Y").otherwise("N"))
   }
@@ -89,7 +85,6 @@ object CollectionSummaryJobV2 extends optional.Application with IJob with BaseRe
   }
 
   def getContentMetaData(processBatches: DataFrame, spark: SparkSession)(implicit fc: FrameworkContext, config: JobConfig): DataFrame = {
-    import spark.implicits._
     val courseIds = processBatches.select(col("courseid")).distinct().map(f => f.getString(0)).collect.toList
     JobLogger.log(s"Total distinct Course Id's ${courseIds.size}", None, INFO)
     val courseInfo = CourseUtils.getCourseInfo(courseIds, None, config.modelParams.get.getOrElse("batchSize", 50).asInstanceOf[Int], Option(config.modelParams.get.getOrElse("contentStatus", CourseUtils.defaultContentStatus.toList).asInstanceOf[List[String]].toArray), Option(config.modelParams.get.getOrElse("contentFields", CourseUtils.defaultContentFields.toList).asInstanceOf[List[String]].toArray)).toDF(contentFields: _*)
@@ -104,7 +99,6 @@ object CollectionSummaryJobV2 extends optional.Application with IJob with BaseRe
   def prepareReport(spark: SparkSession, fetchData: (SparkSession, Map[String, String], String, StructType) => DataFrame)(implicit fc: FrameworkContext, config: JobConfig): DataFrame = {
     implicit val sparkSession: SparkSession = spark
     implicit val sqlContext: SQLContext = spark.sqlContext
-    import spark.implicits._
     val userCachedDF = getUserData(spark, fetchData = fetchData).select("userid", "state", "district", "orgname", "usertype", "usersubtype")
     val processBatches: DataFrame = filterBatches(spark, fetchData, config)
       .join(getUserEnrollment(spark, fetchData), Seq("batchid", "courseid"), "left_outer")
@@ -150,8 +144,7 @@ object CollectionSummaryJobV2 extends optional.Application with IJob with BaseRe
   /**
    * Filtering the batches by job config ("generateForAllBatches", "batchEnrolDate")
    */
- def filterBatches(spark: SparkSession, fetchData: (SparkSession, Map[String, String], String, StructType) => DataFrame, config: JobConfig): DataFrame = {
-    import spark.implicits._
+  def filterBatches(spark: SparkSession, fetchData: (SparkSession, Map[String, String], String, StructType) => DataFrame, config: JobConfig): DataFrame = {
     val modelParams = config.modelParams.get
     val startDate = modelParams.getOrElse("batchStartDate", "").asInstanceOf[String]
     val generateForAllBatches = modelParams.getOrElse("generateForAllBatches", false).asInstanceOf[Boolean]
@@ -181,4 +174,3 @@ object CollectionSummaryJobV2 extends optional.Application with IJob with BaseRe
     filteredBatches
   }
 }
-

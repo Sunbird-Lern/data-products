@@ -16,4 +16,8 @@ lern-data-products/druid-reports
 lern-data-products/report-backups
 lern-data-products/src/test/resources/exhaust-reports
 lern-data-products/src/test/resources/druid-reports
+adhoc-scripts/adhoc-scripts*.iml
+lern-data-products/src/test/resources.csv
+lern-data-products/src/test/resources/tpd_metrics/
+**.csv.crc
 **/bin/*
