@@ -22,7 +22,7 @@ import org.apache.spark.sql.Row
 import java.util.UUID
 import org.ekstep.analytics.framework.OutputDispatcher
 import org.ekstep.analytics.framework.Dispatcher
-import org.sunbird.core.BaseReportsJob
+import org.sunbird.core.exhaust.BaseReportsJob
 import org.sunbird.lms.exhaust.collection.UDFUtils
 
 object CollectionReconciliationJob extends IJob with BaseReportsJob {
@@ -35,7 +35,6 @@ object CollectionReconciliationJob extends IJob with BaseReportsJob {
   private val userEnrolmentDBSettings = Map("table" -> "user_enrolments", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
   private val userEnrolmentTempDBSettings = Map("table" -> "user_enrolments_temp", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
   private val collectionBatchDBSettings = Map("table" -> "course_batch", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
-  private val contentConsumptionDBSettings = Map("table" -> "user_content_consumption", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
   private val contentHierarchyDBSettings = Map("table" -> "content_hierarchy", "keyspace" -> AppConf.getConfig("sunbird.content.hierarchy.keyspace"), "cluster" -> "ContentCluster");
   case class UserEnrolment(userid: String, courseid: String, batchid: String)
 

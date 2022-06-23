@@ -3,7 +3,7 @@ package org.sunbird.lms.exhaust.collection
 import org.apache.spark.sql.functions.{col, lit, when}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
-import org.sunbird.core.JobRequest
+import org.sunbird.core.exhaust.JobRequest
 
 object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
 

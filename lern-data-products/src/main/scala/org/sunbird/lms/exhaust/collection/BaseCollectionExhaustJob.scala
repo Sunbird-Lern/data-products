@@ -18,7 +18,7 @@ import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.sunbird.core.util.DecryptUtil
-import org.sunbird.core.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
+import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
 import java.security.MessageDigest

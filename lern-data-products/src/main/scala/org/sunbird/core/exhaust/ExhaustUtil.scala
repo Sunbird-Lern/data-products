@@ -1,4 +1,4 @@
-package org.sunbird.core
+package org.sunbird.core.exhaust
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.FrameworkContext

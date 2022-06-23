@@ -10,7 +10,6 @@ import org.ekstep.analytics.model.OutputConfig
 import org.ekstep.analytics.model.QueryDateRange
 import org.ekstep.analytics.model.ReportConfig
 import org.sunbird.core.util.SparkSpec
-import org.sunbird.lms.job.report.CourseEnrollmentJob;
 
 class TestCourseEnrollmentJob extends SparkSpec(null) {
 

@@ -6,8 +6,8 @@ import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.scalamock.scalatest.MockFactory
+import org.sunbird.core.exhaust.BaseReportsJob
 import org.sunbird.core.util.{BaseSpec, EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
-import org.sunbird.core.BaseReportsJob
 import org.sunbird.lms.exhaust.collection.{AssessmentData, ProgressExhaustJobV2}
 import redis.embedded.RedisServer
 

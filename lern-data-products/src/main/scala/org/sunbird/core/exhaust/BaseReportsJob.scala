@@ -1,7 +1,7 @@
-package org.sunbird.core
+package org.sunbird.core.exhaust
 
-import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.types.StructType
 import org.ekstep.analytics.framework.util.CommonUtil
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, JobContext, StorageConfig}
 import org.sunbird.cloud.storage.conf.AppConf

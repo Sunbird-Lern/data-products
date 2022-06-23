@@ -10,7 +10,6 @@ import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.{CourseUtils, UserData}
 import org.sunbird.lms.audit.CollectionSummaryJobV2
-import org.sunbird.lms.job.report.BaseReportsJob
 
 import scala.collection.mutable
 

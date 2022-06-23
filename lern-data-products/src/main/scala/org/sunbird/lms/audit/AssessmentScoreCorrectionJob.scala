@@ -12,7 +12,7 @@ import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
-import org.sunbird.core.BaseReportsJob
+import org.sunbird.core.exhaust.BaseReportsJob
 
 import java.io._
 import scala.collection.immutable.List

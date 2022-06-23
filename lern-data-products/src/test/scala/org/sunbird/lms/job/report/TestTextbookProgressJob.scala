@@ -4,7 +4,6 @@ import org.ekstep.analytics.framework.util.JSONUtils
 import org.ekstep.analytics.framework.{Dispatcher, Fetcher, JobConfig}
 import org.ekstep.analytics.model.{OutputConfig, QueryDateRange, ReportConfig}
 import org.sunbird.core.util.SparkSpec
-import org.sunbird.lms.job.report.TextbookProgressJob
 
 class TestTextbookProgressJob extends SparkSpec(null) {
 

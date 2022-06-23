@@ -8,7 +8,6 @@ import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.{EmbeddedCassandra, SparkSpec}
 import org.sunbird.cloud.storage.conf.AppConf
 import org.sunbird.lms.job.report.BaseReportsJob
-import org.sunbird.userorg.job.report.StateAdminGeoReportJob
 
 import java.io.File
 

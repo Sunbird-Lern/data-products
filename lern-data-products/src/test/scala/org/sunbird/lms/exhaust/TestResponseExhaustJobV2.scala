@@ -7,8 +7,8 @@ import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.joda.time.DateTimeZone
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.scalamock.scalatest.MockFactory
+import org.sunbird.core.exhaust.BaseReportsJob
 import org.sunbird.core.util.{BaseSpec, EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
-import org.sunbird.core.BaseReportsJob
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
@@ -81,7 +81,7 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
     implicit val responseExhaustEncoder = Encoders.product[ResponseExhaustReport]
     val batch1Results = spark.read.format("csv").option("header", "true")
       .load(s"$outputLocation/$filePath.csv").as[ResponseExhaustReport].collectAsList().asScala
-    batch1Results.size should be (18)
+    batch1Results.size should be (16)
 
     val user1Result = batch1Results.filter(f => f.`User UUID`.equals("user-001"))
     user1Result.map(f => f.`Collection Id`).toList should contain atLeastOneElementOf List("do_1130928636168192001667")

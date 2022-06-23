@@ -10,7 +10,6 @@ import org.ekstep.analytics.framework.util.JSONUtils
 import org.ekstep.analytics.framework.{Dispatcher, DruidQueryModel, Fetcher, FrameworkContext, JobConfig, Query}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.{EmbeddedCassandra, SparkSpec}
-import org.sunbird.lms.job.report.AssessmentCorrectionJob
 
 import scala.concurrent.Future
 

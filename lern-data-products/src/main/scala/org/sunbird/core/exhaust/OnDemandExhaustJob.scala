@@ -1,4 +1,4 @@
-package org.sunbird.core
+package org.sunbird.core.exhaust
 
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.ZipParameters

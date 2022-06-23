@@ -9,7 +9,7 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.lms.job.report.BaseReportSpec
 import org.sunbird.core.util.{EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
-import org.sunbird.core.{BaseReportsJob, JobRequest}
+import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest}
 import org.sunbird.lms.exhaust.collection.UserInfoExhaustJob
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer

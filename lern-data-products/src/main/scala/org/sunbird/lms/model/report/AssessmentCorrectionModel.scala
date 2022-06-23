@@ -9,7 +9,7 @@ import org.ekstep.analytics.framework._
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.fetcher.DruidDataFetcher
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
-import org.sunbird.core.BaseReportsJob
+import org.sunbird.core.exhaust.BaseReportsJob
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

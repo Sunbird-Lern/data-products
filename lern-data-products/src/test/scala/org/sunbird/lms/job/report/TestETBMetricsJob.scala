@@ -4,7 +4,6 @@ import org.ekstep.analytics.framework.{Dispatcher, DruidQueryModel, Fetcher, Job
 import org.ekstep.analytics.framework.util.JSONUtils
 import org.ekstep.analytics.model.{Metrics, QueryDateRange, ReportConfig}
 import org.sunbird.core.util.SparkSpec
-import org.sunbird.lms.job.report.ETBMetricsJob
 
 class TestETBMetricsJob extends SparkSpec(null) {
 

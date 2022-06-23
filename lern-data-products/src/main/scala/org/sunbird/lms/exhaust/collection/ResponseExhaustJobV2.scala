@@ -6,7 +6,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.JobLogger
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
-import org.sunbird.core.ExhaustUtil
+import org.sunbird.core.exhaust.ExhaustUtil
 
 object ResponseExhaustJobV2 extends BaseCollectionExhaustJob {
 
