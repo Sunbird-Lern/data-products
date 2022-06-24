@@ -27,7 +27,7 @@ class TestScoreMetricMigrationJob extends BaseSpec with MockFactory {
 
   it should "Should migrate the score metrics data" in {
     implicit val mockFc: FrameworkContext = mock[FrameworkContext]
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.audit.ScoreMetricMigrationJob","modelParams":{"store":"azure","sparkCassandraConnectionHost":"localhost", "fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')", "metricsType":"attempt_metrics", "forceMerge": false},"parallelization":8,"appName":"ScoreMetricMigrationJob"}""".stripMargin
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.audit.ScoreMetricMigrationJob","modelParams":{"store":"azure","sparkCassandraConnectionHost":"localhost", "fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')", "metricsType":"attempt_metrics", "forceMerge": false},"parallelization":8,"appName":"ScoreMetricMigrationJob"}""".stripMargin
     implicit val jobConfig: JobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val sc: SparkContext = spark.sparkContext
     val res = ScoreMetricMigrationJob.migrateData(spark, jobConfig)
@@ -81,7 +81,7 @@ class TestScoreMetricMigrationJob extends BaseSpec with MockFactory {
 
   it should "Should migrate the score metrics data for specific batch" in {
     implicit val mockFc: FrameworkContext = mock[FrameworkContext]
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.audit.ScoreMetricMigrationJob","modelParams":{"store":"azure","sparkCassandraConnectionHost":"localhost", "fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')", "batchId": ["batch-002"], "metricsType":"attempt_metrics", "forceMerge": false},"parallelization":8,"appName":"ScoreMetricMigrationJob"}""".stripMargin
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.audit.ScoreMetricMigrationJob","modelParams":{"store":"azure","sparkCassandraConnectionHost":"localhost", "fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')", "batchId": ["batch-002"], "metricsType":"attempt_metrics", "forceMerge": false},"parallelization":8,"appName":"ScoreMetricMigrationJob"}""".stripMargin
     implicit val jobConfig: JobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val sc: SparkContext = spark.sparkContext
     val res = ScoreMetricMigrationJob.migrateData(spark, jobConfig)
@@ -103,7 +103,7 @@ class TestScoreMetricMigrationJob extends BaseSpec with MockFactory {
 
   it should "Should migrate the score metrics data with forcemerge" in {
     implicit val mockFc: FrameworkContext = mock[FrameworkContext]
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.analytics.audit.ScoreMetricMigrationJob","modelParams":{"store":"azure","sparkCassandraConnectionHost":"localhost", "fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')", "batchId": [], "metricsType":"attempt_metrics", "forceMerge": true},"parallelization":8,"appName":"ScoreMetricMigrationJob"}""".stripMargin
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.audit.ScoreMetricMigrationJob","modelParams":{"store":"azure","sparkCassandraConnectionHost":"localhost", "fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')", "batchId": [], "metricsType":"attempt_metrics", "forceMerge": true},"parallelization":8,"appName":"ScoreMetricMigrationJob"}""".stripMargin
     implicit val jobConfig: JobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val sc: SparkContext = spark.sparkContext
     val res = ScoreMetricMigrationJob.migrateData(spark, jobConfig)

@@ -10,7 +10,7 @@ trait UnirestClient {
 
 object UnirestUtil extends UnirestClient {
 
-  implicit val className = "org.sunbird.analytics.util.UnirestUtil"
+  implicit val className = "org.sunbird.core.util.UnirestUtil"
 
   def post(apiUrl: String, body: String, requestHeader: Option[java.util.HashMap[String, String]] = None): String = {
     val request = Unirest.post(apiUrl).headers(requestHeader.getOrElse(new java.util.HashMap())).body(body)

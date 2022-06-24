@@ -2,10 +2,11 @@ package org.sunbird.userorg.job.report
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
+import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.EmbeddedCassandra
+import org.sunbird.lms.job.report.{BaseReportSpec, BaseReportsJob}
 
 class TestStateSelfUserExternalIDJob extends BaseReportSpec with MockFactory {
 

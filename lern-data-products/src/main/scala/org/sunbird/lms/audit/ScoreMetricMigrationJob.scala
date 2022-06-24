@@ -10,15 +10,15 @@ import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
-import org.sunbird.userorg.job.report.BaseReportsJob
+import org.sunbird.lms.job.report.BaseReportsJob
 
 import java.util.Date
 
-object ScoreMetricMigrationJob extends optional.Application with IJob with BaseReportsJob {
+object ScoreMetricMigrationJob extends IJob with BaseReportsJob {
   val userActivityAggDBSettings = Map("table" -> "user_activity_agg", "keyspace" -> AppConf.getConfig("sunbird.user.report.keyspace"), "cluster" -> "LMSCluster")
   val assessmentAggregatorDBSettings = Map("table" -> "assessment_aggregator", "keyspace" -> AppConf.getConfig("sunbird.user.report.keyspace"), "cluster" -> "LMSCluster")
   val cassandraUrl = "org.apache.spark.sql.cassandra"
-  implicit val className: String = "org.sunbird.analytics.audit.ScoreMetricMigrationJob"
+  implicit val className: String = "org.sunbird.lms.audit.ScoreMetricMigrationJob"
   val jobName = "ScoreMetricMigrationJob"
 
   // $COVERAGE-OFF$ Disabling scoverage for main and execute method

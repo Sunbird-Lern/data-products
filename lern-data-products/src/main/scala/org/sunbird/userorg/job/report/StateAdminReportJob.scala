@@ -4,23 +4,19 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.{col, lit, when, _}
 import org.apache.spark.sql.{DataFrame, _}
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
-import org.ekstep.analytics.framework.util.DatasetUtil.extensions
-import org.sunbird.cloud.storage.conf.AppConf
-import org.ekstep.analytics.framework.IJob
-import org.ekstep.analytics.framework.FrameworkContext
-import org.ekstep.analytics.framework.util.JobLogger
-import org.ekstep.analytics.framework.JobConfig
-import org.ekstep.analytics.framework.JobContext
 import org.ekstep.analytics.framework.dispatcher.ScriptDispatcher
+import org.ekstep.analytics.framework.util.DatasetUtil.extensions
+import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
+import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
 import org.sunbird.core.util.DecryptUtil
-import org.ekstep.analytics.framework.util.JSONUtils
+import org.sunbird.cloud.storage.conf.AppConf
 
 import scala.collection.mutable.ListBuffer
 
 case class UserSelfDeclared(userid: String, orgid: String, persona: String, errortype: String,
                             status: String, userinfo: Map[String, String])
 
-object StateAdminReportJob extends optional.Application with IJob with StateAdminReportHelper {
+object StateAdminReportJob extends IJob with StateAdminReportHelper {
 
     implicit val className: String = "org.ekstep.analytics.job.StateAdminReportJob"
     
@@ -53,12 +49,12 @@ object StateAdminReportJob extends optional.Application with IJob with StateAdmi
     
     // $COVERAGE-ON$ Enabling scoverage for other methods
     def generateExternalIdReport() (implicit sparkSession: SparkSession, fc: FrameworkContext) = {
-        import sparkSession.implicits._
         val DECLARED_EMAIL: String = "declared-email"
         val DECLARED_PHONE: String = "declared-phone"
-        val userSelfDeclaredEncoder = Encoders.product[UserSelfDeclared].schema
-        //loading user_declarations table details based on declared values and location details and appending org-external-id if present
-        val userSelfDeclaredDataDF = loadData(sparkSession, Map("table" -> "user_declarations", "keyspace" -> sunbirdKeyspace), Some(userSelfDeclaredEncoder))
+        // val userSelfDeclaredEncoder = Encoders.product[UserSelfDeclared].schema
+        // loading user_declarations table details based on declared values and location details and appending org-external-id if present
+        // val userSelfDeclaredDataDF = loadData(sparkSession, Map("table" -> "user_declarations", "keyspace" -> sunbirdKeyspace), Some(userSelfDeclaredEncoder))
+        val userSelfDeclaredDataDF = loadData(sparkSession, Map("table" -> "user_declarations", "keyspace" -> sunbirdKeyspace))
         val userConsentDataDF = loadData(sparkSession, Map("table" -> "user_consent", "keyspace" -> sunbirdKeyspace))
         val activeConsentDF = userConsentDataDF.where(col("status") === "ACTIVE" && lower(col("object_type")) ===  "organisation")
         val activeSelfDeclaredDF = userSelfDeclaredDataDF.join(activeConsentDF, userSelfDeclaredDataDF.col("userid") === activeConsentDF.col("user_id") && userSelfDeclaredDataDF.col("orgid") === activeConsentDF.col("consumer_id"), "left_semi").
@@ -109,7 +105,7 @@ object StateAdminReportJob extends optional.Application with IJob with StateAdmi
     def appendUserProfileTypeWithLocation(userDf: DataFrame) : DataFrame = {
         val userProfileDf = userDf.withColumn("locationids", locationIdList(col("profilelocation"))).
             withColumn("usertype", addUserType(col("profileusertypes"), lit("type"))).
-            withColumn("usersubtype", addUserType(col("profileusertypes"), lit("subType")))
+            withColumn("usersubtype", addUserType(col("profileusertypes"), lit("subType"))).cache()
         userProfileDf
     }
     
@@ -189,7 +185,7 @@ object StateAdminReportJob extends optional.Application with IJob with StateAdmi
         resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
         resultDf
     }
-    
+
     def locationIdListFunction(location: String): List[String] = {
         var locations = new ListBuffer[String]()
         try {

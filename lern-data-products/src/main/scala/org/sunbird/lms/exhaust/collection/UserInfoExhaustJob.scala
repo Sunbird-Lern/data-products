@@ -1,16 +1,20 @@
 package org.sunbird.lms.exhaust.collection
 
+import org.apache.spark.sql.functions.{col, lit, when}
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.functions._
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.sunbird.core.exhaust.JobRequest
 
-object UserInfoExhaustJob extends optional.Application with BaseCollectionExhaustJob with Serializable {
+object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
 
-  override def getClassName = "org.sunbird.analytics.exhaust.collection.UserInfoExhaustJob"
+  override def getClassName = "org.sunbird.lms.exhaust.collection.UserInfoExhaustJob"
+
   override def jobName() = "UserInfoExhaustJob";
+
   override def jobId() = "userinfo-exhaust";
+
   override def getReportPath() = "userinfo-exhaust/";
+
   override def getReportKey() = "userinfo";
   private val encryptedFields = Array("email", "phone");
 
@@ -27,15 +31,15 @@ object UserInfoExhaustJob extends optional.Application with BaseCollectionExhaus
   }
 
   private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone",
-    "consentflag", "consentprovideddate","block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname");
+    "consentflag", "consentprovideddate", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname");
 
   private val consentFields = List("email", "phone")
   private val orgDerivedFields = List("username")
-  private val columnsOrder = List("Collection Id", "Collection Name", "Batch Id", "Batch Name", "User UUID", "User Name", "User Type", "User Sub Type", "State", "District","Block", "Cluster", "School Id", "School Name", "Org Name",
+  private val columnsOrder = List("Collection Id", "Collection Name", "Batch Id", "Batch Name", "User UUID", "User Name", "User Type", "User Sub Type", "State", "District", "Block", "Cluster", "School Id", "School Name", "Org Name",
     "Email ID", "Mobile Number", "Consent Provided", "Consent Provided Date");
   val columnMapping = Map("courseid" -> "Collection Id", "collectionName" -> "Collection Name", "batchid" -> "Batch Id", "batchName" -> "Batch Name", "userid" -> "User UUID",
     "username" -> "User Name", "usertype" -> "User Type", "usersubtype" -> "User Sub Type", "state" -> "State", "district" -> "District", "block" -> "Block", "cluster" -> "Cluster", "orgname" -> "Org Name",
-    "email" -> "Email ID", "phone" -> "Mobile Number", "consentflag" -> "Consent Provided", "consentprovideddate" -> "Consent Provided Date",  "schooludisecode" -> "School Id", "schoolname" -> "School Name")
+    "email" -> "Email ID", "phone" -> "Mobile Number", "consentflag" -> "Consent Provided", "consentprovideddate" -> "Consent Provided Date", "schooludisecode" -> "School Id", "schoolname" -> "School Name")
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
 
@@ -68,15 +72,17 @@ object UserInfoExhaustJob extends optional.Application with BaseCollectionExhaus
 
     val schema = userDF.schema
     val decryptFields = schema.fields.filter(field => encryptedFields.contains(field.name));
-    val resultDF = decryptFields.foldLeft(userDF)((df, field) => { df.withColumn(field.name, when(col("consentflag") === "true", UDFUtils.toDecrypt(col(field.name))).otherwise(col(field.name))) })
+    val resultDF = decryptFields.foldLeft(userDF)((df, field) => {
+      df.withColumn(field.name, when(col("consentflag") === "true", UDFUtils.toDecrypt(col(field.name))).otherwise(col(field.name)))
+    })
     resultDF
   }
 
   /**
    * UserInfo Exhaust should be an encrypted file. So, don't ignore zip and encryption exceptions.
+   *
    * @return
    */
   override def canZipExceptionBeIgnored(): Boolean = false
 
 }
-

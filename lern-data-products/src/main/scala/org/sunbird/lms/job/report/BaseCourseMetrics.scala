@@ -2,11 +2,11 @@ package org.sunbird.lms.job.report
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Encoders, SQLContext, SparkSession}
+import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 import org.ekstep.analytics.framework._
 import org.ekstep.analytics.framework.util.CommonUtil
-import org.sunbird.cloud.storage.conf.AppConf
 import org.sunbird.core.util.CourseUtils
+import org.sunbird.cloud.storage.conf.AppConf
 
 case class BaseCourseMetricsOutput(courseName: String, batchName: String, status: String, slug: String, courseId: String, batchId: String) extends AlgoInput
 
@@ -25,7 +25,7 @@ trait BaseCourseMetrics[T <: AnyRef, A <: BaseCourseMetricsOutput, B <: AlgoOutp
   }
 
   def getCourseMetrics(spark: SparkSession, config: Map[String, AnyRef])(implicit sc: SparkContext, fc: FrameworkContext): DataFrame = {
-    implicit val sqlContext = new SQLContext(sc)
+    implicit val spark: SparkSession = SparkSession.builder().config(sc.getConf).getOrCreate()
     val courses = CourseUtils.getCourse(config)
     val courseBatch = CourseUtils.getCourseBatchDetails(spark, CourseUtils.loadData)
     val tenantInfo = CourseUtils.getTenantInfo(spark, CourseUtils.loadData)

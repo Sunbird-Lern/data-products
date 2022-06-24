@@ -4,18 +4,18 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql._
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{col, row_number, _}
+import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework._
+import org.ekstep.analytics.framework.dispatcher.ScriptDispatcher
+import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
 import org.sunbird.cloud.storage.conf.AppConf
-import org.ekstep.analytics.framework.util.DatasetUtil.extensions
-import org.ekstep.analytics.framework.dispatcher.ScriptDispatcher
-import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 
 
 case class DistrictSummary(index:Int, districtName: String, blocks: Long, schools: Long)
 case class RootOrgData(rootorgjoinid: String, rootorgchannel: String, rootorgslug: String)
 
-object StateAdminGeoReportJob extends optional.Application with IJob with StateAdminReportHelper {
+object StateAdminGeoReportJob extends IJob with StateAdminReportHelper {
 
   implicit val className: String = "org.ekstep.analytics.job.StateAdminGeoReportJob"
 
