@@ -30,6 +30,7 @@ object TextbookProgressModel extends IBatchModelTemplate[Empty, TenantInformatio
 
   override def name: String = "TextbookProgressModel"
 
+  // $COVERAGE-OFF$
   override def preProcess(events: RDD[Empty], config: Map[String, AnyRef])(implicit sc: SparkContext, fc: FrameworkContext): RDD[TenantInformation] = {
     CommonUtil.setStorageConf(config.getOrElse("store", "local").toString, config.get("accountKey").asInstanceOf[Option[String]], config.get("accountSecret").asInstanceOf[Option[String]])
     val url = Constants.ORG_SEARCH_URL
@@ -165,4 +166,5 @@ object TextbookProgressModel extends IBatchModelTemplate[Empty, TenantInformatio
       else data.asInstanceOf[List[String]].mkString(",")
     } else ""
   }
+  // $COVERAGE-ON$
 }

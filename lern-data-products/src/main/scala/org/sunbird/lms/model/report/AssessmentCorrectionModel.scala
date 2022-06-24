@@ -30,6 +30,7 @@ object AssessmentCorrectionModel extends IBatchModelTemplate[String,V3Event,Asse
   val assessEvent = "ASSESS"
   val contentType = "SelfAssess"
 
+  // $COVERAGE-OFF$
   override def preProcess(data: RDD[String], config: Map[String, AnyRef])(implicit sc: SparkContext, fc: FrameworkContext): RDD[V3Event] = {
     JobLogger.log(s"Total input events from backup: ${data.count()}", None, Level.INFO)
     data.map(f => JSONUtils.deserialize[V3Event](f)).filter(f => null != f.eid && f.eid.equals(assessEvent) && null != f.`object`.get.rollup.getOrElse(RollUp("", "", "", "")).l1 && !f.`object`.get.rollup.getOrElse(RollUp("", "", "", "")).l1.isEmpty)
@@ -133,4 +134,5 @@ object AssessmentCorrectionModel extends IBatchModelTemplate[String,V3Event,Asse
         .select("userid", "courseid", "batchid")
     }
   }
+  // $COVERAGE-ON$
 }

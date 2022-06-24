@@ -35,6 +35,7 @@ object TBConstants {
 
 object TextBookUtils {
 
+  // $COVERAGE-OFF$
   def getTextBooks(config: Map[String, AnyRef])(implicit sc:SparkContext,fc: FrameworkContext): List[TextbookData] = {
     val request = JSONUtils.serialize(config.get("druidConfig").get)
     val druidQuery = JSONUtils.deserialize[DruidQueryModel](request)
@@ -400,4 +401,5 @@ object TextBookUtils {
       formatedDate.format(simple.parse(date))
     } else ""
   }
+  // $COVERAGE-ON$
 }
