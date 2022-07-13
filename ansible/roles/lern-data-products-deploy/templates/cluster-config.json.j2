@@ -6,7 +6,7 @@
     ],
     "file": "wasbs://{{ bucket }}@{{sunbird_private_storage_account_name}}.blob.core.windows.net/models-{{ model_version }}/{{ analytics_batch_module_artifact }}",
     "files": [
-        "wasbs://{{ bucket }}@{{sunbird_private_storage_account_name}}.blob.core.windows.net/models-{{ model_version }}/application.conf"
+        "wasbs://{{ bucket }}@{{sunbird_private_storage_account_name}}.blob.core.windows.net/models-{{ model_version }}/lern-application.conf"
     ],
     "className": "org.ekstep.analytics.job.JobExecutor",
     "executorCores": {{ spark_cluster.executor_core }},
