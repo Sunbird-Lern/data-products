@@ -132,7 +132,7 @@
     - ed-dataproducts
 
 - name: Copy model-config.json file
-  template: src=model-config.json.j2 dest={{ analytics.home }}/scripts/model-config.json mode=755 owner={{ analytics_user }} group={{ analytics_group }}
+  template: src=lern-model-config.json.j2 dest={{ analytics.home }}/scripts/lern-model-config.json mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags:
     - dataproducts
     - update-config
