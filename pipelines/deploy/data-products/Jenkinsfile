@@ -48,7 +48,7 @@ node() {
                             mv scruid_2.11-2.4.0.jar ansible
                        fi
                     """
-                    ansiblePlaybook = "--extra-vars \"remote=${params.remote}\" ${currentWs}/ansible/lpa_data-products_deploy.yml"
+                    ansiblePlaybook = "--extra-vars \"remote=${params.remote}\" ${currentWs}/ansible/lpa_lern-data-products_deploy.yml"
                     ansibleExtraArgs = " --tags ${params.module} --vault-password-file /var/lib/jenkins/secrets/vault-pass"
                     values.put('ansiblePlaybook', ansiblePlaybook)
                     values.put('ansibleExtraArgs', ansibleExtraArgs)
