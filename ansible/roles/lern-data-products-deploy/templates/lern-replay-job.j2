@@ -4,7 +4,7 @@ export MODELS_HOME={{ analytics.home }}/models-{{ model_version }}
 export DP_LOGS={{ analytics.home }}/logs/lern-data-products
 
 cd {{ analytics.home }}/scripts
-source model-config.sh
+source lern-model-config.sh
 source replay-utils.sh
 
 libs_path="{{ analytics.home }}/models-{{ model_version }}/lern-data-products-1.0"
@@ -20,7 +20,7 @@ fi
 
 get_report_job_model_name(){
     case "$1" in
-        "assessment-correction") echo 'org.sunbird.analytics.job.report.AssessmentCorrectionJob'
+        "assessment-correction") echo 'org.sunbird.lms.job.report.AssessmentCorrectionJob'
         ;;
         *) echo $1
         ;;
