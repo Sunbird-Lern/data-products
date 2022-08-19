@@ -70,12 +70,28 @@ trait BaseReportsJob {
 
   def setReportsStorageConfiguration(sc: SparkContext, config: JobConfig) {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]())
+    val store = modelParams.getOrElse("store", "local").asInstanceOf[String];
     val reportsStorageAccountKey = modelParams.getOrElse("storageKeyConfig", "reports_storage_key").asInstanceOf[String];
     val reportsStorageAccountSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
     if (reportsStorageAccountKey != null && reportsStorageAccountSecret.nonEmpty) {
-      sc.hadoopConfiguration.set("fs.azure", "org.apache.hadoop.fs.azure.NativeAzureFileSystem")
-      sc.hadoopConfiguration.set("fs.azure.account.key." + AppConf.getConfig(reportsStorageAccountKey) + ".blob.core.windows.net", AppConf.getConfig(reportsStorageAccountSecret))
-      sc.hadoopConfiguration.set("fs.azure.account.keyprovider." + AppConf.getConfig(reportsStorageAccountKey) + ".blob.core.windows.net", "org.apache.hadoop.fs.azure.SimpleKeyProvider")
+      store.toLowerCase() match {
+        case "s3" =>
+          sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", AppConf.getConfig(reportsStorageAccountKey));
+          sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", AppConf.getConfig(reportsStorageAccountSecret));
+        case "azure" =>
+          val storageKeyValue = AppConf.getConfig(reportsStorageAccountKey);
+          sc.hadoopConfiguration.set("fs.azure", "org.apache.hadoop.fs.azure.NativeAzureFileSystem")
+          sc.hadoopConfiguration.set(s"fs.azure.account.key.$storageKeyValue.blob.core.windows.net", AppConf.getConfig(reportsStorageAccountSecret))
+          sc.hadoopConfiguration.set(s"fs.azure.account.keyprovider.$storageKeyValue.blob.core.windows.net", "org.apache.hadoop.fs.azure.SimpleKeyProvider")
+        case "gcloud" =>
+          sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+          sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+          sc.hadoopConfiguration.set("fs.gs.auth.service.account.email", AppConf.getStorageKey("gcloud"))
+          sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key", AppConf.getStorageSecret("gcloud"))
+          sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key.id", AppConf.getConfig("gcloud_private_secret_id"))
+        case _ =>
+
+      }
     }
   }
 
