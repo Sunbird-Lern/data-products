@@ -78,12 +78,12 @@ object ResponseExhaustJobV2 extends BaseCollectionExhaustJob {
   }
 
   def getAssessmentBlobDF(batch: CollectionBatch, config: JobConfig)(implicit spark: SparkSession, fc: FrameworkContext): DataFrame = {
-    val azureFetcherConfig = config.modelParams.get("assessmentFetcherConfig").asInstanceOf[Map[String, AnyRef]]
+    val archivalFetcherConfig = config.modelParams.get("assessmentFetcherConfig").asInstanceOf[Map[String, AnyRef]]
 
-    val store = azureFetcherConfig("store").asInstanceOf[String]
-    val format: String = azureFetcherConfig.getOrElse("format", "csv").asInstanceOf[String]
-    val filePath = azureFetcherConfig.getOrElse("filePath", "archival-data/").asInstanceOf[String]
-    val container = azureFetcherConfig.getOrElse("container", "reports").asInstanceOf[String]
+    val store = archivalFetcherConfig("store").asInstanceOf[String]
+    val format: String = archivalFetcherConfig.getOrElse("format", "csv").asInstanceOf[String]
+    val filePath = archivalFetcherConfig.getOrElse("filePath", "archival-data/").asInstanceOf[String]
+    val container = archivalFetcherConfig.getOrElse("container", "reports").asInstanceOf[String]
 
     val assessAggData = ExhaustUtil.getArchivedData(store, filePath, container, Map("batchId" -> batch.batchId, "collectionId" -> batch.collectionId), Option(format))
 

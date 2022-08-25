@@ -4,7 +4,6 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.{col, lit, when, _}
 import org.apache.spark.sql.{DataFrame, _}
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
-import org.ekstep.analytics.framework.dispatcher.ScriptDispatcher
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
@@ -109,27 +108,10 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         userProfileDf
     }
     
-    def generateSelfUserDeclaredZip(blockData: DataFrame, jobConfig: JobConfig): Unit = {
-        JobLogger.log(s"generateSelfUserDeclaredZip:: Self-Declared user level zip generation::starts", None, INFO)
-        val params = jobConfig.modelParams.getOrElse(Map())
-        val virtualEnvDirectory = params.getOrElse("adhoc_scripts_virtualenv_dir", "/mount/venv")
-        val scriptOutputDirectory = params.getOrElse("adhoc_scripts_output_dir", "/mount/portal_data")
-        
-        val channels = blockData.select(col("provider")).distinct().collect.map(_.getString(0)).mkString(",")
-        val userDeclaredDetailReportCommand = Seq("bash", "-c",
-            s"source $virtualEnvDirectory/bin/activate; " +
-                s"dataproducts user_declared_detail --data_store_location='$scriptOutputDirectory' --states='$channels' --is_private")
-        JobLogger.log(s"User self-declared detail persona zip report command:: $userDeclaredDetailReportCommand", None, INFO)
-        val userDeclaredDetailReportExitCode = ScriptDispatcher.dispatch(userDeclaredDetailReportCommand)
-        
-      //$COVERAGE-OFF$ Disabling scoverage for if condition
-        if (userDeclaredDetailReportExitCode == 0) {
-            JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
-        }  // $COVERAGE-ON$ Enabling scoverage for else condition
-        else {
-            JobLogger.log(s"Self-Declared user level zip generation failed with exit code $userDeclaredDetailReportExitCode", None, ERROR)
-            throw new Exception(s"Self-Declared user level zip generation failed with exit code $userDeclaredDetailReportExitCode")
-        }
+    def generateSelfUserDeclaredZip(blockData: DataFrame, jobConfig: JobConfig)(implicit fc: FrameworkContext): Unit = {
+        val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
+        blockData.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")), Some(storageService), Some(true))
+        JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
     }
     
     private def decryptDF(emailMap: collection.Map[String, String], phoneMap: collection.Map[String, String]) (implicit sparkSession: SparkSession, fc: FrameworkContext) : DataFrame = {
