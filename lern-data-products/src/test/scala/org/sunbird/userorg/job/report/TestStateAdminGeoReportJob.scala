@@ -66,8 +66,6 @@ class TestStateAdminGeoReportJob extends SparkSpec(null) with MockFactory {
 
     val jobConfig = JobConfig(Fetcher("local", None, None), None, None, "StateAdminJob", Some(modelParams), None, Some(4), Some("TestExecuteDispatchder"))
     val strConfig = JSONUtils.serialize(jobConfig)
-    the[Exception] thrownBy {
-      StateAdminGeoReportJob.main(strConfig)
-    } should have message "District level zip generation failed with exit code 127"
+    StateAdminGeoReportJob.main(strConfig)
   }
 }
