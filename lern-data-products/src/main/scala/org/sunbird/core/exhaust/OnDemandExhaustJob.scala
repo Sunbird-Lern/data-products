@@ -170,7 +170,7 @@ trait OnDemandExhaustJob {
     val filePrefix = storageConfig.store.toLowerCase() match {
       // $COVERAGE-OFF$ Disabling scoverage
       case "s3" =>
-        CommonUtil.getS3File(storageConfig.container, "");
+        CommonUtil.getS3File(storageConfig.container, "")
       case "azure" =>
         CommonUtil.getAzureFile(storageConfig.container, "", storageConfig.accountKey.getOrElse("azure_storage_key"))
       case "gcloud" =>
