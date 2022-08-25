@@ -59,20 +59,6 @@ class TestStateAdminGeoReportJob extends SparkSpec(null) with MockFactory {
     assert(geoSummaryDistrict.exists() === true)
   }
 
-  it should "execute dispatcher" in {
-    implicit val fc = new FrameworkContext()
-    val reportDF = StateAdminGeoReportJob.generateGeoReport()(spark, fc)
-
-    val modelParams = Map[String, AnyRef]("adhoc_scripts_virtualenv_dir" -> "/mount/venv",
-      "adhoc_scripts_output_dir" -> "/mount/portal_data")
-
-    val jobConfig = JobConfig(Fetcher("local", None, None), None, None, "StateAdminJob", Some(modelParams), None, Some(4), Some("TestExecuteDispatchder"))
-    println("jobconfig: " + JSONUtils.serialize(jobConfig))
-    the[Exception] thrownBy {
-      StateAdminGeoReportJob.generateDistrictZip(reportDF, jobConfig)
-    } should have message "District level zip generation failed with exit code 127"
-  }
-
   it should "execute main method" in {
     implicit val fc = new FrameworkContext()
     val modelParams = Map[String, AnyRef]("adhoc_scripts_virtualenv_dir" -> "/mount/venv",
