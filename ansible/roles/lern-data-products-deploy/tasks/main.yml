@@ -147,18 +147,6 @@
     - spark1-jobs
     - clean-cronjobs
 
-- name: Create daily cron jobs for wfs
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh wfs"
-  with_dict: "{{ run_wfs_job }}"
-  tags:
-    - spark1-jobs
-
-- name: Create daily cron jobs for monitor job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh monitor-job-summ"
-  with_dict: "{{ run_monitor_job }}"
-  tags:
-    - spark1-jobs
-
 - name: Create daily cron jobs using submit-all-jobs
   cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job='/bin/bash -lc "ruby {{ analytics.home }}/scripts/submit-all-jobs.rb"'
   with_dict: "{{ submit_jobs }}"
@@ -176,37 +164,29 @@
     - cronjobs
 
 - name: Create course-batch-status-updater cron job
-  cron: name="{{env}}-course-batch-status-updater" minute=*/{{ course_batch_status_updater_job_schedule }} job="{{ analytics.home }}/scripts/run-job.sh course-batch-status-updater"
+  cron: name="{{env}}-course-batch-status-updater" minute=*/{{ course_batch_status_updater_job_schedule }} job="{{ analytics.home }}/scripts/lern-run-job.sh course-batch-status-updater"
   tags:
     - cronjobs
     - default-jobs
     - spark1-jobs
 
 - name: Create admin-user-reports cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh admin-user-reports"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/lern-run-job.sh admin-user-reports"
   with_dict: "{{ run_admin_user_reports_job }}"
   tags:
     - cronjobs 
     - default-jobs
     - spark-jobs
 - name: Create admin-geo-reports cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh admin-geo-reports"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/lern-run-job.sh admin-geo-reports"
   with_dict: "{{ run_admin_geo_reports_job }}"
   tags:
     - cronjobs
     - default-jobs
     - spark-jobs 
 
-- name: Create assessment-aggregator reports cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="/bin/bash {{ analytics.home }}/adhoc-scripts/run_exporter.sh > /home/analytics/output.log"
-  with_dict: "{{ run_assessment_aggregator_report_job }}"
-  tags:
-    - cronjobs
-    - default-jobs
-    - spark-jobs  
-
 - name: Create etb metrics cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }} weekday={{ item.value.weekday }}  job="{{ analytics.home }}/scripts/run-job.sh etb-metrics"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }} weekday={{ item.value.weekday }}  job="{{ analytics.home }}/scripts/lern-run-job.sh etb-metrics"
   with_dict: "{{ run_etb_metrics_weekly_job }}"
   tags:
     - cronjobs
@@ -214,7 +194,7 @@
     - spark-jobs
 
 - name: Create progress-exhaust cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh progress-exhaust"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/lern-run-job.sh progress-exhaust"
   with_dict: "{{ run_progress_exhaust }}"
   tags:
     - cronjobs
@@ -222,7 +202,7 @@
     - spark1-jobs
 
 - name: Create response-exhaust cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh response-exhaust"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/lern-run-job.sh response-exhaust"
   with_dict: "{{ run_response_exhaust }}"
   tags:
     - cronjobs
@@ -230,7 +210,7 @@
     - spark-jobs
 
 - name: Create cassandra-migration cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh cassandra-migration"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/lern-run-job.sh cassandra-migration"
   with_dict: "{{ run_cassandra_migration }}"
   tags:
     - cronjobs
@@ -239,7 +219,7 @@
     
 
 - name: Create userinfo-exhaust cron job
-  cron: name="{{ env }}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }} job="{{ analytics.home }}/scripts/run-job.sh userinfo-exhaust"
+  cron: name="{{ env }}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }} job="{{ analytics.home }}/scripts/lern-run-job.sh userinfo-exhaust"
   with_dict: "{{ run_userinfo_exhaust }}"
   tags:
     - cronjobs
@@ -247,7 +227,7 @@
     - spark-jobs
 
 - name: Create collection-summary cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh collection-summary-report"
+  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/lern-run-job.sh collection-summary-report"
   with_dict: "{{ run_collection_summary }}"
   tags:
     - cronjobs
@@ -258,30 +238,6 @@
   copy: src="collection-summary-ingestion-spec.json" dest={{ analytics.home }}/scripts/ mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags:
     - ed-dataproducts
-
-- name: Create sourcing-summary cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-dock-job.sh sourcing-summary-report"
-  with_dict: "{{ run_sourcing_summary }}"
-  tags:
-    - cronjobs
-    - default-jobs
-    - spark-jobs
-
-- name: Create uci-private-exhaust cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh uci-private-exhaust"
-  with_dict: "{{ run_uci_private_exhaust_job }}"
-  tags:
-    - cronjobs
-    - default-jobs
-    - spark-jobs
-
-- name: Create uci-response-exhaust cron job
-  cron: name="{{env}}-{{ item.key }}" minute={{ item.value.minute }} hour={{ item.value.hour }}  job="{{ analytics.home }}/scripts/run-job.sh uci-response-exhaust"
-  with_dict: "{{ run_uci_response_exhaust_job }}"
-  tags:
-    - cronjobs
-    - default-jobs
-    - spark-jobs 
 
 - name: Update start jobmanager
   template: src=start-jobmanager.j2 dest={{ analytics.home }}/scripts/start-jobmanager.sh mode=755 owner={{ analytics_user }} group={{ analytics_group }}
