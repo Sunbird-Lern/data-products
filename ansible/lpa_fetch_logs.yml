@@ -1,0 +1,7 @@
+- hosts: spark
+  become: yes
+  become_user: "{{analytics_user}}"
+  roles:
+    - lern-data-products-fetch-logs
+  serial: 1
+
