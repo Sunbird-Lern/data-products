@@ -105,7 +105,7 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
     while(pResponse.next()) {
       pResponse.getString("err_message") should be ("")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
-      pResponse.getString("download_urls") should be (s"{reports/response-exhaust/$requestId/batch-001_response_${getDate()}.zip}")
+      pResponse.getString("download_urls") should be (s"{response-exhaust/$requestId/batch-001_response_${getDate()}.zip}")
       pResponse.getString("dt_file_created") should be (null)
       pResponse.getString("iteration") should be ("0")
     }
