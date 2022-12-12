@@ -65,14 +65,19 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
 
 //    val collectionAggPivotDF = collectionAggDF.groupBy("courseid", "batchid", "userid", "completionPercentage").pivot(concat(col("l1identifier"), lit(" - Progress"))).agg(first(col("l1completionPercentage")))
 //      .drop("null")
-    val assessmentAggPivotDF = assessmentAggDF.withColumn("content_score", concat(col("content_id"), lit(" - Score")))
+    val scorePivotDF = assessmentAggDF.withColumn("content_score", concat(col("content_id"), lit(" - Score")))
       .groupBy("courseid", "batchid", "userid", "total_sum_score")
       .pivot("content_score").agg(concat(ceil((split(first("grand_total"), "\\/")
       .getItem(0) * 100) / (split(first("grand_total"), "\\/")
       .getItem(1))), lit("%")))
+    val attemptCountPivotDF = assessmentAggDF
+      .withColumn("attempts_count_name", concat(col("content_id"), lit(" - Attempts count")))
+      .groupBy("courseid", "batchid", "userid", "total_sum_score")
+      .pivot("attempts_count_name").agg(concat(max(col("attempts_count"))))
+    val joinedDf = scorePivotDF.join(attemptCountPivotDF, Seq("courseid", "batchid", "userid", "total_sum_score"), "inner")
     //val progressDF = collectionAggPivotDF.join(assessmentAggPivotDF, Seq("courseid", "batchid", "userid"), "left_outer")
     //userEnrolmentDF.join(progressDF, Seq("courseid", "batchid", "userid"), "left_outer")
-    userEnrolmentDF.join(assessmentAggPivotDF, Seq("courseid", "batchid", "userid"), "left_outer")
+    userEnrolmentDF.join(joinedDf, Seq("courseid", "batchid", "userid"), "left_outer")
       .withColumn("completionPercentage", when(col("completedon").isNotNull, 100).otherwise(col("completionPercentage")))
       .withColumn("completedon", when(col("completedon").isNotNull, date_format(col("completedon"), "dd/MM/yyyy")).otherwise(""))
       .withColumn("enrolleddate", date_format(to_date(col("enrolleddate")), "dd/MM/yyyy"))
@@ -88,7 +93,10 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
     val bestScoreReport = AppConf.getConfig("assessment.metrics.bestscore.report").toBoolean
     val columnName: String = if (bestScoreReport) "total_score" else "last_attempted_on"
     val df = Window.partitionBy("userid", "batchid", "courseid", "content_id").orderBy(desc(columnName))
-    assessmentDF.withColumn("rownum", row_number.over(df)).where(col("rownum") === 1).drop("rownum")
+    assessmentDF.withColumn("rownum", row_number.over(df))
+      .withColumn("attempts_count", max(col("rownum")).over(df))
+      .where(col("rownum") === 1)
+      .drop("rownum")
   }
   
   def getAssessmentAggData(userEnrolmentDF: DataFrame)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
@@ -121,7 +129,7 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
       .select(col("courseid"), explode_outer(col("assessmentIds")).as("contentid"))
 
     val assessAggdf = filterAssessmentDF(getAssessmentAggData(userEnrolmentDF))
-      .select("courseid", "batchid", "userid", "content_id", "total_max_score", "total_score", "grand_total")
+      .select("courseid", "batchid", "userid", "content_id", "total_max_score", "total_score", "grand_total", "attempts_count")
 
     val dataDF = contentDataDF.join(assessAggdf, contentDataDF.col("courseid") === assessAggdf.col("courseid")
       && contentDataDF.col("contentid") === assessAggdf.col("content_id"), "inner").select(assessAggdf.col("*"))
