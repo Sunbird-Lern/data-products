@@ -138,8 +138,10 @@ trait OnDemandExhaustJob {
   def processRequestEncryption(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): JobRequest = {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
-        try zipAndEncrypt(url, storageConfig, request)
-        catch {
+        try {
+          zipAndEncrypt(url, storageConfig, request)
+          url
+        } catch {
           case ex: Exception => ex.printStackTrace();
             if(canZipExceptionBeIgnored()) {
               url
