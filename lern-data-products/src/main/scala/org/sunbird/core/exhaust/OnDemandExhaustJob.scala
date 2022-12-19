@@ -140,7 +140,7 @@ trait OnDemandExhaustJob {
       if (zipEnabled())
         try {
           zipAndEncrypt(url, storageConfig, request)
-          url
+          url.replace(".csv", ".zip")
         } catch {
           case ex: Exception => ex.printStackTrace();
             if(canZipExceptionBeIgnored()) {
