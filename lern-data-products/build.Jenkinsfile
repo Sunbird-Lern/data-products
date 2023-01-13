@@ -41,12 +41,12 @@ node('build-slave') {
         }
         stage('Archive artifacts'){
             sh """
-                mkdir lpa_dp_artifacts
-                cp ./lern-data-products/target/lern-data-products-1.0-distribution.tar.gz lpa_dp_artifacts
-                zip -j lpa_dp_artifacts.zip:${artifact_version} lpa_dp_artifacts/*
+                mkdir lern_data_products_artifacts
+                cp ./lern-data-products/target/lern-data-products-1.0-distribution.tar.gz lern_data_products_artifacts
+                zip -j lern_data_products_artifacts.zip:${artifact_version} lern_data_products_artifacts/*
             """
-            archiveArtifacts artifacts: "lpa_dp_artifacts.zip:${artifact_version}", fingerprint: true, onlyIfSuccessful: true
-            sh """echo {\\"artifact_name\\" : \\"lpa_dp_artifacts.zip\\", \\"artifact_version\\" : \\"${artifact_version}\\", \\"node_name\\" : \\"${env.NODE_NAME}\\"} > metadata.json"""
+            archiveArtifacts artifacts: "lern_data_products_artifacts.zip:${artifact_version}", fingerprint: true, onlyIfSuccessful: true
+            sh """echo {\\"artifact_name\\" : \\"lern_data_products_artifacts.zip\\", \\"artifact_version\\" : \\"${artifact_version}\\", \\"node_name\\" : \\"${env.NODE_NAME}\\"} > metadata.json"""
             archiveArtifacts artifacts: 'metadata.json', onlyIfSuccessful: true
             currentBuild.description = artifact_version
         }
