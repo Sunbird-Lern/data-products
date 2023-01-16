@@ -350,9 +350,11 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
           try {
             val res = CommonUtil.time(processBatch(filteredDF, batch));
             val reportDF = res._2
-            val files = reportDF.saveToBlobStore(storageConfig, "csv", getFilePath(batch.batchId, requestId.getOrElse("")), Option(Map("header" -> "true")), None)
+            val fileFormat = "csv"
+            val filePath = getFilePath(batch.batchId, requestId.getOrElse(""))
+            val files = reportDF.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
             newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
-            CollectionBatchResponse(batch.batchId, files.head, "SUCCESS", "", res._1, newFileSize);
+            CollectionBatchResponse(batch.batchId, filePath + "." + fileFormat, "SUCCESS", "", res._1, newFileSize);
           } catch {
             case ex: Exception => ex.printStackTrace(); CollectionBatchResponse(batch.batchId, "", "FAILED", ex.getMessage, 0, 0);
           } finally {
