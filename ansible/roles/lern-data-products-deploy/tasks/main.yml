@@ -21,14 +21,14 @@
   become: yes
   unarchive: src={{ playbook_dir}}/{{ analytics_ed_dataporducts_artifact }} dest={{ analytics.home }}/models-{{ model_version }} copy=yes group={{ analytics_group }} owner={{ analytics_user }}
   tags:
-    - ed-dataproducts
+    - lern-dataproducts
 
 - name: Copy Ed Data Products to azure blob
   command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/lern-data-products-1.0.jar -f {{ analytics.home }}/models-{{ model_version }}/lern-data-products-1.0/lern-data-products-1.0.jar
   async: 3600
   poll: 10
   tags:
-    - ed-dataproducts-spark-cluster      
+    - lern-dataproducts-spark-cluster
 
 - name: Copy Framework Library
   copy: src={{ analytics_core_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
@@ -63,7 +63,7 @@
   template: src=common.conf.j2 dest={{ analytics.home }}/models-{{ model_version }}/lern{{ env }}.conf mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags:
     - dataproducts
-    - ed-dataproducts
+    - lern-dataproducts
     - framework
   when: dockdataproducts is undefined
 
@@ -97,17 +97,17 @@
 
 - name: Copy log4j2 xml file
   template: src=log4j2.xml.j2 dest={{ analytics.home }}/models-{{ model_version }}/log4j2.xml mode=755 owner={{ analytics_user }} group={{ analytics_group }}
-  tags: [ dataproducts, framework, ed-dataproducts ]
+  tags: [ dataproducts, framework, lern-dataproducts ]
 
 - name: Copy Scripts
   template: src={{ item }}.j2 dest={{ analytics.home }}/scripts/{{ item }}.sh mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   with_items: "{{ analytics.scripts }}"
-  tags: [ dataproducts, framework, ed-dataproducts ]
+  tags: [ dataproducts, framework, lern-dataproducts ]
   when: dockdataproducts is undefined
 
 - name: Copy python sanity check script file
   template: src=exhaust_sanity_check.py.j2 dest={{ analytics.home }}/scripts/exhaust_sanity_check.py
-  tags: [ dataproducts, framework, ed-dataproducts ]
+  tags: [ dataproducts, framework, lern-dataproducts ]
   when: dockdataproducts is undefined
 
 - name: Update model config
@@ -115,7 +115,7 @@
   tags:
     - dataproducts
     - update-config
-    - ed-dataproducts
+    - lern-dataproducts
   when: dockdataproducts is undefined
 
 - name: Copy submit-all-jobs ruby file
@@ -123,14 +123,14 @@
   tags:
     - dataproducts
     - update-config
-    - ed-dataproducts
+    - lern-dataproducts
 
 - name: Copy model-config.json file
   template: src=lern-model-config.json.j2 dest={{ analytics.home }}/scripts/lern-model-config.json mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags:
     - dataproducts
     - update-config
-    - ed-dataproducts
+    - lern-dataproducts
 
 - name: Clean cron jobs
   command: crontab -r
@@ -231,7 +231,7 @@
 - name: Copy collection-summary ingestion spec
   copy: src="collection-summary-ingestion-spec.json" dest={{ analytics.home }}/scripts/ mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags:
-    - ed-dataproducts
+    - lern-dataproducts
 
 - name: Update start jobmanager
   template: src=start-jobmanager.j2 dest={{ analytics.home }}/scripts/start-jobmanager.sh mode=755 owner={{ analytics_user }} group={{ analytics_group }}

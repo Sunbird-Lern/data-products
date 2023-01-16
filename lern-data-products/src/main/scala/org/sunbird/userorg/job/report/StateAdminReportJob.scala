@@ -164,6 +164,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("usersubtype").as("User-Sub Type"),
                 col("userroororg").as("Root Org of user"),
                 col("channel").as("provider"))
+          .filter(col("provider").isNotNull)
         resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
         resultDf
     }
