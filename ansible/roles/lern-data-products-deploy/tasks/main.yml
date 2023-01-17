@@ -5,6 +5,19 @@
   tags:
     - always
 
+- name: Ensure oci oss bucket exists
+  command: "/home/{{analytics_user}}/bin/oci os bucket get --name {{ bucket }}"
+  register: check_bucket
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci"
+  tags:
+    - always
+
+- name: Create oci oss bucket 
+  command: "/home/{{analytics_user}}/bin/oci os bucket create -c {{oci_bucket_compartment}} --name {{bucket}}"
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci" and check_bucket.rc !=0
+  tags:
+    - always
+
 - name: Copy Core Data Products
   copy: src={{ analytics_batch_module_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
   tags:
@@ -14,8 +27,18 @@
   command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_batch_module_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_batch_module_artifact }}
   async: 3600
   poll: 10
+  when: dp_object_store_type == "azure"
   tags:
     - dataproducts-spark-cluster 
+
+- name: Copy Core Data Products to oci oss
+  command: /home/{{analytics_user}}/bin/oci os object put -bn {{ bucket }} --name models-{{ model_version }}/{{ analytics_batch_module_artifact }} --file {{ analytics.home }}/models-{{ model_version }}/{{ analytics_batch_module_artifact }} --force
+  async: 3600
+  poll: 10
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci"
+  tags:
+    - dataproducts-spark-cluster 
+
 
 - name: Unarchive Ed Data Products
   become: yes
@@ -27,8 +50,17 @@
   command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/lern-data-products-1.0.jar -f {{ analytics.home }}/models-{{ model_version }}/lern-data-products-1.0/lern-data-products-1.0.jar
   async: 3600
   poll: 10
+  when: dp_object_store_type == "azure"
   tags:
     - lern-dataproducts-spark-cluster
+
+- name: Copy Ed Data Products to oci oss
+  command: /home/{{analytics_user}}/bin/oci os object put -bn {{ bucket }} --name models-{{ model_version }}/data-products-1.0.jar --file {{ analytics.home }}/models-{{ model_version }}/data-products-1.0/data-products-1.0.jar --force
+  async: 3600
+  poll: 10
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci"
+  tags:
+    - lern-dataproducts-spark-cluster 
 
 - name: Copy Framework Library
   copy: src={{ analytics_core_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
@@ -39,6 +71,15 @@
   command: az storage blob upload --overwrite --debug -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_core_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_core_artifact }}
   async: 3600
   poll: 10
+  when: dp_object_store_type == "azure"
+  tags:
+    - framework-spark-cluster
+
+- name: Copy Framework Library to oci oss
+  command: /home/{{analytics_user}}/bin/oci os object put -bn {{ bucket }} --name models-{{ model_version }}/{{ analytics_core_artifact }} --file {{ analytics.home }}/models-{{ model_version }}/{{ analytics_core_artifact }} --force
+  async: 3600
+  poll: 10
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci"
   tags:
     - framework-spark-cluster
 
@@ -51,8 +92,17 @@
   command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/{{ scruid_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ scruid_artifact }}
   async: 3600
   poll: 10
+  when: dp_object_store_type == "azure"
   tags:
     - framework-spark-cluster  
+
+- name: Copy Scruid Library to oci oss
+  command: /home/{{analytics_user}}/bin/oci os object put -bn {{ bucket }} --name models-{{ model_version }}/{{ scruid_artifact }} --file {{ analytics.home }}/models-{{ model_version }}/{{ scruid_artifact }} --force
+  async: 3600
+  poll: 10
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci"
+  tags:
+    - framework-spark-cluster 
 
 - name: Copy Job Manager
   copy: src={{ analytics_job_manager_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
@@ -92,9 +142,18 @@
   command: az storage blob upload --overwrite -c {{ bucket }} -f {{ analytics.home }}/models-{{ model_version }}/lernapplication.conf --name models-{{ model_version }}/lernapplication.conf
   async: 3600
   poll: 10
+  when: dp_object_store_type == "azure"
   tags:
     - framework-spark-cluster    
 
+- name: Copy configuration file to oci oss
+  command: /home/{{analytics_user}}/bin/oci os object put -bn {{ bucket }} --file {{ analytics.home }}/models-{{ model_version }}/application.conf --name models-{{ model_version }}/application.conf --force
+  async: 3600
+  poll: 10
+  when: dp_object_store_type == "s3" and cloud_service_provider == "oci"
+  tags:
+    - framework-spark-cluster  
+    
 - name: Copy log4j2 xml file
   template: src=log4j2.xml.j2 dest={{ analytics.home }}/models-{{ model_version }}/log4j2.xml mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags: [ dataproducts, framework, lern-dataproducts ]
