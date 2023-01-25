@@ -149,7 +149,7 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
   }
 
   def getOptionalNodes(courseId: String) : mutable.Set[String] = {
-    var optionalList = jedis.smembers(s"$courseId:$courseId:${AppConf.getConfig("sunbird.courses.optionalnodes")}")
+    var optionalList = jedis.smembers(s"$courseId:$courseId:${AppConf.getConfig("sunbird.course.optionalnodes")}")
     scala.collection.JavaConversions.asScalaSet(optionalList)
   }
 
