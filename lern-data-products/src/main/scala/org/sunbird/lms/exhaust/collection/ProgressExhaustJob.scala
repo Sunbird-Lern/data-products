@@ -138,7 +138,7 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
   }
 
   def loadCollectionHierarchy(identifier: String)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
-    loadData(contentHierarchyDBSettings, cassandraFormat, new StructType()).where(col("identifier") === s"${identifier}").select("identifier", "hierarchy", "relational_metadata")
+    loadData(contentHierarchyDBSettings, cassandraFormat, new StructType()).where(col("identifier") === s"${identifier}").select("identifier", "hierarchy")
   }
   
   def getLeafNodeCount(hierarchyData: DataFrame) : Int = {
