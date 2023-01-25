@@ -600,7 +600,7 @@ object UDFUtils extends Serializable {
     }
   }
 
-  val completionPercentage = udf[Int, Map[String, Int], Int, List[String], Set[String]](completionPercentageFunction)
+  val completionPercentage = udf[Int, Map[String, Int], Int, Set[String]](completionPercentageFunction)
 
   def getLatestValueFun(newValue: String, staleValue: String): String = {
     Option(newValue)
