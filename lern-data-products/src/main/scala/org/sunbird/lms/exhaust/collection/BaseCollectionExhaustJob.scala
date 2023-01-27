@@ -2,6 +2,7 @@ package org.sunbird.lms.exhaust.collection
 
 import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -17,13 +18,14 @@ import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, Storag
 import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.sunbird.core.util.DecryptUtil
+import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
+import scala.collection.Seq
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 
@@ -47,6 +49,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   private val collectionBatchDBSettings = Map("table" -> "course_batch", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
   private val systemDBSettings = Map("table" -> "system_settings", "keyspace" -> AppConf.getConfig("sunbird.user.keyspace"), "cluster" -> "UserCluster");
   private val userEnrolmentDBSettings = Map("table" -> "user_enrolments", "keyspace" -> AppConf.getConfig("sunbird.user.report.keyspace"), "cluster" -> "ReportCluster");
+  val redisConnection =  new RedisConnect(AppConf.getConfig("sunbird.course.redis.host"), AppConf.getConfig("sunbird.course.redis.port").toInt)
+  var jedis = redisConnection.getConnection(AppConf.getConfig("sunbird.course.redis.relationCache.id").toInt)
 
   private val redisFormat = "org.apache.spark.sql.redis";
   val cassandraFormat = "org.apache.spark.sql.cassandra";
@@ -587,9 +591,9 @@ object UDFUtils extends Serializable {
 
   val extractFromArrayString = udf[String, String](extractFromArrayStringFun)
 
-  def completionPercentageFunction(statusMap: Map[String, Int], leafNodesCount: Int): Int = {
+  def completionPercentageFunction(statusMap: Map[String, Int], leafNodesCount: Int, optionalNodes: Seq[String]): Int = {
     try {
-      val completedContent = statusMap.count(p => p._2 == 2)
+      val completedContent = statusMap.count(p => !(!optionalNodes.isEmpty && optionalNodes.contains(p._1)) && p._2 == 2)
       if(completedContent >= leafNodesCount) 100 else Math.round(((completedContent.toFloat/leafNodesCount) * 100))
     } catch {
       case ex: Exception =>
@@ -598,7 +602,7 @@ object UDFUtils extends Serializable {
     }
   }
 
-  val completionPercentage = udf[Int, Map[String, Int], Int](completionPercentageFunction)
+  val completionPercentage = udf[Int, Map[String, Int], Int, Seq[String]](completionPercentageFunction)
 
   def getLatestValueFun(newValue: String, staleValue: String): String = {
     Option(newValue)

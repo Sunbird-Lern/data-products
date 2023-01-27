@@ -6,6 +6,9 @@ import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.JSONUtils
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
+import org.sunbird.lms.exhaust.collection.ProgressExhaustJob.{getOptionalNodes, jedis}
+
+import scala.collection.mutable
 
 object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
 
@@ -47,7 +50,9 @@ object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     val hierarchyData = loadCollectionHierarchy(collectionBatch.collectionId)
     val leafNodesCount = getLeafNodeCount(hierarchyData);
-    val enrolmentWithCompletions = userEnrolmentDF.withColumn("completionPercentage", UDFUtils.completionPercentage(col("contentstatus"), lit(leafNodesCount)));
+    val optionalNodes = getOptionalNodes(collectionBatch.collectionId)
+    //val broadcastedSet = spark.sparkContext.broadcast(optionalNodes)
+    val enrolmentWithCompletions = userEnrolmentDF.withColumn("completionPercentage", UDFUtils.completionPercentage(col("contentstatus"), lit(leafNodesCount), typedLit(optionalNodes)));
     val enrolledUsersToBatch = updateCertificateStatus(enrolmentWithCompletions).select(filterColumns.head, filterColumns.tail: _*)
     // Get selfAssess contents for generate score percentage
     val supportedContentIds: List[AssessmentData] = getContents(hierarchyData)
@@ -118,6 +123,12 @@ object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
     val hierarchyStr = hierarchyData.first().getString(1)
     val hierarchy = JSONUtils.deserialize[Map[String, AnyRef]](hierarchyStr)
     hierarchy.getOrElse("leafNodesCount", 0).asInstanceOf[Int]
+  }
+
+  def getOptionalNodes(courseId: String) : Seq[String] = {
+    var optionalList = jedis.smembers(s"$courseId:$courseId:${AppConf.getConfig("sunbird.course.optionalnodes")}")
+    import scala.collection.JavaConversions._
+    optionalList.toSeq
   }
 
   /**
