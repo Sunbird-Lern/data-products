@@ -9,6 +9,7 @@ import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.JSONUtils
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 
+import scala.collection.immutable.Set
 import scala.collection.mutable
 
 case class UserAggData(user_id: String, activity_id: String, completedCount: Int, context_id: String)
@@ -58,6 +59,7 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
     //get optional node from
     val leafNodesCount = getLeafNodeCount(hierarchyData);
     val optionalNodes = getOptionalNodes(collectionBatch.collectionId)
+    //val broadcastedSet = spark.sparkContext.broadcast(optionalNodes)
     val enrolmentWithCompletions = userEnrolmentDF.withColumn("completionPercentage", UDFUtils.completionPercentage(col("contentstatus"), lit(leafNodesCount), typedLit(optionalNodes)));
     val enrolledUsersToBatch = updateCertificateStatus(enrolmentWithCompletions).select(filterColumns.head, filterColumns.tail: _*)
     //val progressDF = getProgressDF(enrolledUsersToBatch, collectionAggDF, assessmentAggDF);
@@ -148,9 +150,10 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
     }).collect().head
   }
 
-  def getOptionalNodes(courseId: String) : mutable.Set[String] = {
+  def getOptionalNodes(courseId: String) : Seq[String] = {
     var optionalList = jedis.smembers(s"$courseId:$courseId:${AppConf.getConfig("sunbird.course.optionalnodes")}")
-    scala.collection.JavaConversions.asScalaSet(optionalList)
+    import scala.collection.JavaConversions._
+    optionalList.toSeq
   }
 
   def getCollectionAggWithModuleData(batch: CollectionBatch, hierarchyData: DataFrame)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {

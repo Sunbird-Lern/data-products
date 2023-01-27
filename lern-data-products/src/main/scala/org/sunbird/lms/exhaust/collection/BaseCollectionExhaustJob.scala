@@ -2,6 +2,7 @@ package org.sunbird.lms.exhaust.collection
 
 import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -24,6 +25,7 @@ import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
+import scala.collection.Seq
 import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 
@@ -589,7 +591,7 @@ object UDFUtils extends Serializable {
 
   val extractFromArrayString = udf[String, String](extractFromArrayStringFun)
 
-  def completionPercentageFunction(statusMap: Map[String, Int], leafNodesCount: Int, optionalNodes:Set[String]): Int = {
+  def completionPercentageFunction(statusMap: Map[String, Int], leafNodesCount: Int, optionalNodes: Seq[String]): Int = {
     try {
       val completedContent = statusMap.count(p => !(!optionalNodes.isEmpty && optionalNodes.contains(p._1)) && p._2 == 2)
       if(completedContent >= leafNodesCount) 100 else Math.round(((completedContent.toFloat/leafNodesCount) * 100))
@@ -600,7 +602,7 @@ object UDFUtils extends Serializable {
     }
   }
 
-  val completionPercentage = udf[Int, Map[String, Int], Int, Set[String]](completionPercentageFunction)
+  val completionPercentage = udf[Int, Map[String, Int], Int, Seq[String]](completionPercentageFunction)
 
   def getLatestValueFun(newValue: String, staleValue: String): String = {
     Option(newValue)
