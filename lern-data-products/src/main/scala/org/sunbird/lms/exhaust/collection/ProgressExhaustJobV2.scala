@@ -125,7 +125,7 @@ object ProgressExhaustJobV2 extends BaseCollectionExhaustJob {
     hierarchy.getOrElse("leafNodesCount", 0).asInstanceOf[Int]
   }
 
-  def getOptionalNodes(courseId: String) : mutable.Set[String] = {
+  def getOptionalNodes(courseId: String) : Seq[String] = {
     var optionalList = jedis.smembers(s"$courseId:$courseId:${AppConf.getConfig("sunbird.course.optionalnodes")}")
     import scala.collection.JavaConversions._
     optionalList.toSeq
