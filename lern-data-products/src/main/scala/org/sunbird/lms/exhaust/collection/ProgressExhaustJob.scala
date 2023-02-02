@@ -9,6 +9,9 @@ import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.JSONUtils
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 
+import scala.collection.immutable.Set
+import scala.collection.mutable
+
 case class UserAggData(user_id: String, activity_id: String, completedCount: Int, context_id: String)
 case class CourseData(courseid: String, leafNodesCount: String, level1Data: List[Level1Data])
 case class Level1Data(l1identifier: String, l1leafNodesCount: String)
@@ -53,8 +56,11 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
     //val collectionAggDF = getCollectionAggWithModuleData(collectionBatch, hierarchyData).withColumn("batchid", lit(collectionBatch.batchId));
     //val enrolledUsersToBatch = updateCertificateStatus(userEnrolmentDF).select(filterColumns.head, filterColumns.tail: _*)
     val assessmentAggDF = getAssessmentDF(collectionBatch, userEnrolmentDF, hierarchyData);
+    //get optional node from
     val leafNodesCount = getLeafNodeCount(hierarchyData);
-    val enrolmentWithCompletions = userEnrolmentDF.withColumn("completionPercentage", UDFUtils.completionPercentage(col("contentstatus"), lit(leafNodesCount)));
+    val optionalNodes = getOptionalNodes(collectionBatch.collectionId)
+    //val broadcastedSet = spark.sparkContext.broadcast(optionalNodes)
+    val enrolmentWithCompletions = userEnrolmentDF.withColumn("completionPercentage", UDFUtils.completionPercentage(col("contentstatus"), lit(leafNodesCount), typedLit(optionalNodes)));
     val enrolledUsersToBatch = updateCertificateStatus(enrolmentWithCompletions).select(filterColumns.head, filterColumns.tail: _*)
     //val progressDF = getProgressDF(enrolledUsersToBatch, collectionAggDF, assessmentAggDF);
     val progressDF = getProgressDF(enrolledUsersToBatch, null, assessmentAggDF);
@@ -142,6 +148,12 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
       val hierarchy = JSONUtils.deserialize[Map[String, AnyRef]](row.getString(1))
       hierarchy.getOrElse("leafNodesCount", 0).asInstanceOf[Int]
     }).collect().head
+  }
+
+  def getOptionalNodes(courseId: String) : Seq[String] = {
+    var optionalList = jedis.smembers(s"$courseId:$courseId:${AppConf.getConfig("sunbird.course.optionalnodes")}")
+    import scala.collection.JavaConversions._
+    optionalList.toSeq
   }
 
   def getCollectionAggWithModuleData(batch: CollectionBatch, hierarchyData: DataFrame)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
