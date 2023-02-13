@@ -24,9 +24,10 @@ config() {
     assessTopic={{ assess_topic }}
 
 
-  if [ -z "$2" ]; then endDate=$(date --date yesterday "+%Y-%m-%d"); else endDate=$2; fi
-  if [ ! -z "$3" ]; then inputBucket=$3; fi
-  if [ ! -z "$4" ]; then sinkTopic=$4; fi
+  if [ -z "$2" ]; then endDate=$(date --date yesterday "+%Y-%m-%d"); else endDate=$2; fi #used as fromSpecificDate in usercacheindxerjob
+  if [ ! -z "$3" ]; then inputBucket=$3; fi #used as specfic user id in usercacheindxerjob
+  if [ ! -z "$4" ]; then sinkTopic=$4; fi #used as populateAnonymousData flag in usercacheindxerjob
+  if [ ! -z "$5" ]; then refreshUserData=$4; fi #used as refreshUserData flag in usercacheindxerjob
   if [ ! -z "$2" ]; then keyword=$2; fi
   case "$1" in
     "assessment-correction")
@@ -86,7 +87,10 @@ config() {
     "course-consumption-report")
     echo '{"search": {"type": "none"},"model": "org.sunbird.lms.job.report.CourseConsumptionJob","modelParams": {"esConfig": {"request": {"filters": {"objectType": ["Content"],"contentType": ["Course"],"identifier": [],"status": ["Live"]}}},"reportConfig": {"id": "tpd_metrics","labels": {"date": "Date","status": "Batch Status","timespent": "Timespent in mins","courseName": "Course Name","batchName": "Batch Name"},"dateRange": {"staticInterval": "LastDay","granularity": "all"},"metrics": [{"metric": "totalCoursePlays","label": "Total Course Plays (in mins)","druidQuery": {"queryType": "groupBy","dataSource": "summary-events","intervals":"LastDay","aggregations": [{"name": "sum__edata_time_spent","type": "doubleSum","fieldName": "edata_time_spent"}],"dimensions": [{"fieldName": "object_rollup_l1","aliasName": "courseId"}, {"fieldName": "uid","aliasName": "userId"}, {"fieldName": "context_cdata_id","aliasName": "batchId"}],"filters": [{"type": "equals","dimension": "eid","value": "ME_WORKFLOW_SUMMARY"}, {"type": "in","dimension": "dimensions_pdata_id","values": ["'$producerEnv'.app", "'$producerEnv'.portal"]}, {"type": "equals","dimension": "dimensions_type","value": "content"}, {"type": "equals","dimension": "dimensions_mode","value": "play"}, {"type": "equals","dimension": "context_cdata_type","value": "batch"}],"postAggregation": [{"type": "arithmetic","name": "timespent","fields": {"leftField": "sum__edata_time_spent","rightField": 60,"rightFieldType": "constant"},"fn": "/"}],"descending": "false"}}],"output": [{"type": "csv","metrics": ["timespent"],"dims": []}],"queryType": "groupBy"},"store": "azure","format":"csv","key": "druid-reports/","filePath": "druid-reports/","container":"'$bucket'","folderPrefix": ["slug", "reportName"],"sparkCassandraConnectionHost":"'$sunbirdPlatformCassandraHost'","sparkElasticsearchConnectionHost":"'$sunbirdPlatformElasticsearchHost'"},"output": [{"to": "console","params": {"printEvent": false}}],"parallelization": 8,"appName": "TPD Course Consumption Metrics Model","deviceMapping": false}'
     ;;
-    "*")
+    "user-cache-indexer-job")
+        echo '{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.UserCacheIndexerJob","modelParams":{"specificUserId":"'$inputBucket'","fromSpecificDate":"'$endDate'","populateAnonymousData":"'$sinkTopic'","refreshUserData":"'$refreshUserData'"}}'
+        ;;
+        "*")
     echo "Unknown model code"
     exit 1 # Command to come out of the program with status 1
     ;;
