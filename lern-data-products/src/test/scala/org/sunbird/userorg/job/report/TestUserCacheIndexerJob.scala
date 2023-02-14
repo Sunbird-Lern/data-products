@@ -9,11 +9,6 @@ import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
 
 class TestUserCacheIndexerJob extends SparkSpec(null) with MockFactory {
-
-  implicit val className: String = "org.ekstep.analytics.job.StateAdminGeoReportJob"
-
-  def name(): String = "TestUserCacheIndexerJob"
-
   implicit var spark: SparkSession = _
   var redisServer: RedisServer = _
   override def beforeAll(): Unit = {
@@ -58,7 +53,7 @@ class TestUserCacheIndexerJob extends SparkSpec(null) with MockFactory {
 
   "UserCacheIndexerJob" should "generate the report with all the correct data" in {
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.UserCacheIndexerJob","modelParams":{"specificUserId":"","fromSpecificDate":"","populateAnonymousData":"false","refreshUserData":"true"}}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.UserCacheIndexerJob","modelParams":{"specificUserId":"","fromSpecificDate":"","populateAnonymousData":"false","refreshUserData":"true","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":"6341"}}"""
     val metrics: Unit = UserCacheIndexerJob.main(strConfig)
     val Jedis = getRedisConnection
     val userData = Jedis.hgetAll("user:user-012")

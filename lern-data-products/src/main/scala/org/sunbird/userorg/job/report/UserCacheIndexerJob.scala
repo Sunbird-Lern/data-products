@@ -40,8 +40,8 @@ object UserCacheIndexerJob extends IJob with Serializable {
         .appName("AppName")
         .config("spark.master", "local[*]")
         .config("spark.cassandra.connection.host", config.getString("spark.cassandra.connection.host"))
-        .config("spark.redis.host", config.getString("redis.host"))
-        .config("spark.redis.port", config.getString("redis.port"))
+        .config("spark.redis.host", jobConfig.modelParams.get.getOrElse("sparkRedisConnectionHost", "").toString)
+        .config("spark.redis.port", jobConfig.modelParams.get.getOrElse("sparkUserDbRedisPort", "").toString)
         .config("spark.redis.db", redisIndex)
         .config("spark.redis.max.pipeline.size", config.getString("redis.max.pipeline.size"))
         .config("spark.cassandra.read.timeoutMS", config.getString("cassandra.read.timeoutMS"))
@@ -317,7 +317,7 @@ object UserCacheIndexerJob extends IJob with Serializable {
 
       userDf.unpersist()
 
-      val jedis = new Jedis(config.getString("redis.host"), config.getString("redis.port").toInt)
+      val jedis = new Jedis(jobConfig.modelParams.get.getOrElse("sparkRedisConnectionHost", "").toString, jobConfig.modelParams.get.getOrElse("sparkUserDbRedisPort", "").toString.toInt)
       jedis.select(redisIndex.toInt)
 
       if (null != specificUserId) {
@@ -344,8 +344,8 @@ object UserCacheIndexerJob extends IJob with Serializable {
     def indexToRedis(dataFrame: DataFrame, redisIndex: String, saveMode: SaveMode): Unit = {
       dataFrame.write
         .format("org.apache.spark.sql.redis")
-        .option("host", config.getString("redis.host"))
-        .option("port", config.getString("redis.port"))
+        .option("host", jobConfig.modelParams.get.getOrElse("sparkRedisConnectionHost", "").toString)
+        .option("port", jobConfig.modelParams.get.getOrElse("sparkUserDbRedisPort", "").toString)
         .option("dbNum", redisIndex)
         .option("table", "user")
         .option("key.column", "userid")
@@ -383,8 +383,8 @@ object UserCacheIndexerJob extends IJob with Serializable {
 
     def populateAnonymousUserData(anonymousDataIndex: String = redisIndex): DataFrame = {
       val anonymousDataDF = spark.read.format("org.apache.spark.sql.redis")
-        .option("host", config.getString("redis.host"))
-        .option("port", config.getString("redis.port"))
+        .option("host", jobConfig.modelParams.get.getOrElse("sparkRedisConnectionHost", "").toString)
+        .option("port", jobConfig.modelParams.get.getOrElse("sparkUserDbRedisPort", "").toString)
         .option("dbNum", anonymousDataIndex)
         .schema(
           StructType(
