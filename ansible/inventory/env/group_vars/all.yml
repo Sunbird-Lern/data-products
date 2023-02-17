@@ -10,8 +10,8 @@ channel_data_exhaust_bucket: dev-data-store
 secrets_path: '{{inventory_dir}}/secrets.yml'
 artifacts_container: "{{dp_vault_artifacts_container}}"
 
-report_azure_account_name: "{{sunbird_private_storage_account_name}}"
-report_azure_storage_secret: "{{sunbird_private_storage_account_key}}"
+report_azure_account_name: "{{cloud_private_storage_accountname}}"
+report_azure_storage_secret: "{{cloud_private_storage_secret}}"
 
 sunbird_api_auth_token: "{{ core_vault_sunbird_api_auth_token }}"
 metadata2_redis_host: "{{ groups['redis'][0] }}"
