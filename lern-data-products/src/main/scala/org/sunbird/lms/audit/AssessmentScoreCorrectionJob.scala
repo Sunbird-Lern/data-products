@@ -79,7 +79,7 @@ object AssessmentScoreCorrectionJob extends IJob with BaseReportsJob {
     val userEnrolmentDF = getUserEnrolment(batchId = batchId).persist()
     val contentIds: List[String] = assessmentData.select("content_id").distinct().collect().map(_ (0)).toList.asInstanceOf[List[String]]
     val res = for (contentId <- contentIds) yield {
-      val contentMetaURL: String = modelParams.getOrElse("contentReadAPI", "https://diksha.gov.in/api/content/v1/read/").asInstanceOf[String]
+      val contentMetaURL: String = modelParams.getOrElse("contentReadAPI", "http://localhost:9080/api/content/v1/read/").asInstanceOf[String]
       val supportedContentType: String = modelParams.getOrElse("supportedContentType", "SelfAssess").asInstanceOf[String]
       val contentMeta: ContentMeta = getTotalQuestions(contentId, contentMetaURL)
       JobLogger.log("Fetched the content meta value to the processing batch", Option(contentMeta), INFO)
