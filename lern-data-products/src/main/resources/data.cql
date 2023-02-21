@@ -203,7 +203,8 @@ CREATE TABLE IF NOT EXISTS sunbird.organisation (
     status int,
     updatedby text,
     updateddate text,
-    orglocation text
+    orglocation text,
+    organisationtype text
 ) WITH bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
