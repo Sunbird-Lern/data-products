@@ -424,7 +424,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   }
 
   def getEnrolmentColumns() : Seq[String] = {
-    Seq("batchid", "userid", "courseid")
+    Seq("batchid", "userid", "courseid", "issued_certificates")
   }
   /** END - Overridable Methods */
 
