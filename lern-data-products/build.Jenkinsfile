@@ -10,8 +10,8 @@ node('build-slave') {
                 cleanWs()
                 checkout scm
                 commit_hash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                build_tag = sh(script: "echo " + params.github_release_tag.split('/')[-1] + "_" + commit_hash + "_" + env.BUILD_NUMBER, returnStdout: true).trim()
-                echo "build_tag: " + build_tag
+                artifact_version = sh(script: "echo " + params.github_release_tag.split('/')[-1] + "_" + commit_hash + "_" + env.BUILD_NUMBER, returnStdout: true).trim()
+                echo "artifact_version: " + artifact_version
             }
         }
         stage('Pre-Build') {
@@ -32,12 +32,12 @@ node('build-slave') {
             sh """
                 mkdir lern_data_products_artifacts
                 cp ./lern-data-products/target/lern-data-products-1.0-distribution.tar.gz lern_data_products_artifacts
-                zip -j lern_data_products_artifacts.zip:${build_tag} lern_data_products_artifacts/*
+                zip -j lern_data_products_artifacts.zip:${artifact_version} lern_data_products_artifacts/*
             """
-            archiveArtifacts artifacts: "lern_data_products_artifacts.zip:${build_tag}", fingerprint: true, onlyIfSuccessful: true
-            sh """echo {\\"artifact_name\\" : \\"lern_data_products_artifacts.zip\\", \\"build_tag\\" : \\"${build_tag}\\", \\"node_name\\" : \\"${env.NODE_NAME}\\"} > metadata.json"""
+            archiveArtifacts artifacts: "lern_data_products_artifacts.zip:${artifact_version}", fingerprint: true, onlyIfSuccessful: true
+            sh """echo {\\"artifact_name\\" : \\"lern_data_products_artifacts.zip\\", \\"artifact_version\\" : \\"${artifact_version}\\", \\"node_name\\" : \\"${env.NODE_NAME}\\"} > metadata.json"""
             archiveArtifacts artifacts: 'metadata.json', onlyIfSuccessful: true
-            currentBuild.description = build_tag
+            currentBuild.description = artifact_version
         }
     }
     catch (err) {
