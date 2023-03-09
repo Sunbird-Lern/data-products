@@ -4,9 +4,7 @@ import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
 import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
-import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StructType
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.dispatcher.KafkaDispatcher
@@ -14,23 +12,24 @@ import org.ekstep.analytics.framework.driver.BatchJobDriver.getMetricJson
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, StorageConfig}
-import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.sunbird.core.util.DecryptUtil
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
-import org.sunbird.lms.exhaust.collection.{ ProcessedRequest}
+import org.sunbird.lms.exhaust.collection.{ProcessedRequest}
 
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
+
 case class Metrics(totalRequests: Option[Int], failedRequests: Option[Int], successRequests: Option[Int], duplicateRequests: Option[Int])
+
 case class ProgramResponse(file: String, status: String, statusMsg: String, execTime: Long, fileSize: Long)
-trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob with Serializable{
+
+trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob with Serializable {
   val cassandraFormat = "org.apache.spark.sql.cassandra";
   val MAX_ERROR_MESSAGE_CHAR = 250
+
   def main(config: String)(implicit sc: Option[SparkContext] = None, fc: Option[FrameworkContext] = None): Unit = {
     JobLogger.init(jobName())
     JobLogger.start(s"${jobName()} started executing", Option(Map("config" -> config, "model" -> jobName)))
@@ -75,7 +74,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
     val maxErrorMessageLength: Int = modelParams.getOrElse("maxErrorMessageLength", MAX_ERROR_MESSAGE_CHAR).asInstanceOf[Int]
 
-    val requests = getRequests(jobId(),None)
+    val requests = getRequests(jobId(), None)
     val storageConfig = getStorageConfig(config, AppConf.getConfig("ml.exhaust.store.prefix"))
     val totalRequests = new AtomicInteger(requests.length)
     JobLogger.log("Total Requests are ", Some(Map("jobId" -> jobId(), "totalRequests" -> requests.length)), INFO)
@@ -88,7 +87,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     val requestsCompleted: ListBuffer[ProcessedRequest] = ListBuffer.empty
 
     val result = for (request <- filteredRequests) yield {
-      val updRequest: (JobRequest,StorageConfig) = {
+      val updRequest: (JobRequest, StorageConfig) = {
         try {
           val processedCount = if (requestsCompleted.isEmpty) 0 else requestsCompleted.count(f => f.channel.equals(request.requested_channel))
           val processedSize = if (requestsCompleted.isEmpty) 0 else requestsCompleted.filter(f => f.channel.equals(request.requested_channel)).map(f => f.fileSize).sum
@@ -96,17 +95,17 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
 
           if (validateRequest(request)) {
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
-            val finalRes = transformData(res, request, storageConfig, requestsCompleted,totalRequests)
+            val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests)
             finalRes
           } else {
             JobLogger.log("Not a Valid Request", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
-            (markRequestAsFailed(request, "Not a Valid Request"),storageConfig)
+            (markRequestAsFailed(request, "Not a Valid Request"), storageConfig)
           }
         } catch {
           case ex: Exception =>
             ex.printStackTrace()
-            JobLogger.log(s"Failed to Process the Request ${ex.getMessage}", Some(Map("requestId" -> request.request_id)), INFO)
-            (markRequestAsFailed(request, s"Internal Server Error: ${ex.getMessage.take(maxErrorMessageLength)}"),storageConfig)
+            JobLogger.log(s"Failed to Process the Request ${ex.getMessage}", Some(Map("requestId" -> request.request_id)), ERROR)
+            (markRequestAsFailed(request, s"Internal Server Error: ${ex.getMessage.take(maxErrorMessageLength)}"), storageConfig)
         }
       }
       val updRequest1: JobRequest = updRequest._1
@@ -128,6 +127,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
 
     //    Metrics(totalRequests = Some(5), failedRequests = Some(0), successRequests = Some(1), duplicateRequests = Some(2))
   }
+
   def validateRequest(request: JobRequest): Boolean = {
     if (Option(request.request_data).isEmpty) false else true
   }
@@ -159,67 +159,87 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     */
     reqHashMap.toMap.filter(f => f._2.size > 1).map(f => (f._2.head.request_id -> f._2.tail))
   }
+
   def unpersistDFs() {};
+
   def jobId(): String;
+
   def jobName(): String;
+
   def getReportPath(): String;
+
   def getReportKey(): String;
+
   def processProgram(request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame;
+
   def markRequestAsProcessing(request: JobRequest) = {
     request.status = "PROCESSING";
     updateStatus(request);
   }
 
-  def transformData(resultData: (Long,DataFrame),request: JobRequest,storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest],totalRequests: AtomicInteger)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): (JobRequest,StorageConfig) = {
-    val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
-    val reportDF1= resultData._2
-    val transformedDataDF: DataFrame = if (reportDF1.count() > 0) {
-      //sort the dataframe
-      val sortDfColNames = modelParams.get("sort").asInstanceOf[Option[List[String]]]
-      var reportDF: DataFrame = reportDF1.sort(sortDfColNames.get.head, sortDfColNames.get.tail: _*)
-      val quoteColumns = modelParams.getOrElse("quote_column",List[String]()).asInstanceOf[List[String]]
-      if (quoteColumns.nonEmpty) {
-        val quoteStr = udf((column: String) => "\'" + column + "\'")
-        quoteColumns.map(column => {
-          reportDF = reportDF.withColumn(column, quoteStr(col(column)))
+  def transformData(resultData: (Long, DataFrame), request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest], totalRequests: AtomicInteger)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): (JobRequest, StorageConfig) = {
+      val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
+      val reportDF1 = resultData._2
+      val transformedDataDF: DataFrame = if (reportDF1.count() > 0) {
+        //sort the dataframe
+        JobLogger.log("Applying Sort to the Dataframe", None, INFO)
+        val sortDfColNames = modelParams.get("sort").asInstanceOf[Option[List[String]]]
+        var reportDF: DataFrame = reportDF1.sort(sortDfColNames.get.head, sortDfColNames.get.tail: _*)
+        JobLogger.log("Applying Quote Column to the Dataframe", None, INFO)
+
+        val quoteColumns = modelParams.getOrElse("quote_column", List[String]()).asInstanceOf[List[String]]
+        val quoteCols = ListBuffer[String]()
+        quoteColumns.map(f => {
+          if (reportDF.columns.contains(f)){
+            quoteCols += f
+          }
         })
-      }
-      reportDF
-    } else {
-      JobLogger.log("No Data Found", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
-      markRequestAsFailed(request, "No Data Found")
-      spark.emptyDataFrame
-    }
-    if(transformedDataDF.count()>0) {
-      val result = CommonUtil.time(ProgramUserInfoExhaustJob.saveToFile(transformedDataDF, storageConfig, Some(request.request_id), Some(request.requested_channel), requestsCompleted.toList, resultData._1))
-      val response = result._2;
-      val failedPrograms = response.filter(p => p.status.equals("FAILED"))
-      val processingPrograms = response.filter(p => p.status.equals("PROCESSING"))
-      if (response.size == 0) {
-        (markRequestAsFailed(request, "No Data Found"), storageConfig)
-      } else if (failedPrograms.size > 0) {
-        (markRequestAsFailed(request, failedPrograms.map(f => f.statusMsg).mkString(","), Option("[]")), storageConfig)
-      } else if (processingPrograms.size > 0) {
-        (markRequestAsSubmitted(request, "[]"), storageConfig)
+
+        if (quoteCols.nonEmpty) {
+          val quoteStr = udf((column: String) => if (column.nonEmpty) "\'" + column + "\'" else  column)
+          quoteCols.map(column => {
+           reportDF = reportDF.withColumn(column, quoteStr(col(column)))
+          })
+        }
+        reportDF
       } else {
-        val storageConfig1 = getStorageConfig(config, response.head.file)
-        request.status = "SUCCESS";
-        request.download_urls = Option(response.map(f => f.file).toList);
-        request.execution_time = Option(result._1);
-        request.dt_job_completed = Option(System.currentTimeMillis)
-        request.processed_batches = Option("[]")
-        (request, storageConfig1)
+        JobLogger.log("No Data Found", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+        markRequestAsFailed(request, "No Data Found")
+        spark.emptyDataFrame
       }
-    } else {
-      request.status = "FAILED";
-      request.dt_job_completed = Option(System.currentTimeMillis());
-      request.iteration = Option(request.iteration.getOrElse(0) + 1);
-      request.err_message = Option("No Data Found");
-      (request, storageConfig)
-    }
+      if (transformedDataDF.count() > 0) {
+        JobLogger.log("Saving Dataframe to File", None, INFO)
+        val result = CommonUtil.time(ProgramUserInfoExhaustJob.saveToFile(transformedDataDF, storageConfig, Some(request.request_id), Some(request.requested_channel), requestsCompleted.toList, resultData._1))
+        val response = result._2;
+        val failedPrograms = response.filter(p => p.status.equals("FAILED"))
+        val processingPrograms = response.filter(p => p.status.equals("PROCESSING"))
+        if (response.size == 0) {
+          JobLogger.log("No Data Found", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+          (markRequestAsFailed(request, "No Data Found"), storageConfig)
+        } else if (failedPrograms.size > 0) {
+          (markRequestAsFailed(request, failedPrograms.map(f => f.statusMsg).mkString(","), Option("[]")), storageConfig)
+        } else if (processingPrograms.size > 0) {
+          (markRequestAsSubmitted(request, "[]"), storageConfig)
+        } else {
+          val storageConfig1 = getStorageConfig(config, response.head.file)
+          request.status = "SUCCESS";
+          request.download_urls = Option(response.map(f => f.file).toList);
+          request.execution_time = Option(result._1);
+          request.dt_job_completed = Option(System.currentTimeMillis)
+          request.processed_batches = Option("[]")
+          (request, storageConfig1)
+        }
+      } else {
+        JobLogger.log("No Data Found", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+        request.status = "FAILED";
+        request.dt_job_completed = Option(System.currentTimeMillis());
+        request.iteration = Option(request.iteration.getOrElse(0) + 1);
+        request.err_message = Option("No Data Found");
+        (request, storageConfig)
+      }
   }
 
-  def saveToFile(reportDf: DataFrame,storageConfig: StorageConfig,requestId: Option[String],requestChannel: Option[String], processedRequests: List[ProcessedRequest],execTimeTaken: Long)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[ProgramResponse] = {
+  def saveToFile(reportDf: DataFrame, storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], execTimeTaken: Long)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[ProgramResponse] = {
     var processedCount = if (processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if (processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
     var newFileSize: Long = 0
@@ -229,10 +249,13 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       val filePath = getFilePath(requestId.getOrElse(""))
       val files = reportDf.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
       newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
-      List(ProgramResponse(storageConfig.fileName+"/"+filePath + "." + fileFormat, "SUCCESS", "", execTimeTaken, newFileSize))
+      List(ProgramResponse(storageConfig.fileName + "/" + filePath + "." + fileFormat, "SUCCESS", "", execTimeTaken, newFileSize))
     }
     catch {
-      case ex: Exception => ex.printStackTrace(); List(ProgramResponse("", "FAILED", ex.getMessage, 0, 0));
+      case ex: Exception =>
+        ex.printStackTrace();
+        JobLogger.log(s"Failed to save the file ${ex.getMessage}", None, ERROR)
+        List(ProgramResponse("", "FAILED", ex.getMessage, 0, 0));
     } finally {
       processedCount = processedCount + 1
       processedSize = processedSize + newFileSize
@@ -241,7 +264,9 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     }
 
   }
+
   def organizeDF(reportDF: DataFrame, finalColumnMapping: Map[String, String], finalColumnOrder: List[String]): DataFrame = {
+    JobLogger.log("Label Mapping and Ordering of Columns in the dataframe", None, INFO)
     val fields = reportDF.schema.fieldNames
     val colNames = for (e <- fields) yield finalColumnMapping.getOrElse(e, e)
     val dynamicColumns = fields.toList.filter(e => !finalColumnMapping.keySet.contains(e))
@@ -264,6 +289,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     val requestIdPath = if (requestId.nonEmpty) requestId.concat("_") else ""
     getReportPath() + "/" + requestIdPath + getDate()
   }
+
   def getDate(): String = {
     val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyyMMdd").withZone(DateTimeZone.forOffsetHoursMinutes(5, 30));
     dateFormat.print(System.currentTimeMillis());

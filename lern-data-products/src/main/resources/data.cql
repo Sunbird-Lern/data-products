@@ -568,8 +568,8 @@ CREATE TABLE IF NOT EXISTS sunbird_programs.program_enrollment (
     organisation_name text,
     user_sub_type text,
     user_type text,
-    created_at timestamp,
-    updated_at timestamp,
+    created_at date,
+    updated_at date,
     PRIMARY KEY (program_id,user_id)
 ) WITH bloom_filter_fp_chance = 0.01
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}

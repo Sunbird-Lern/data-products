@@ -34,12 +34,12 @@ object UserInfoUtil extends BaseReportsJob {
   }
 
   def decryptUserInfo(pgmUserDF: DataFrame, userCacheEncryptColNames: List[String])(implicit spark: SparkSession): DataFrame = {
-
     val schema = pgmUserDF.schema
     val decryptFields = schema.fields.filter(field => userCacheEncryptColNames.contains(field.name));
-    val resultDF = decryptFields.foldLeft(pgmUserDF)((df, field) => {
-      df.withColumn(field.name, when(col("consentflag") === "true", UDFUtils.toDecrypt(col(field.name))).otherwise(col(field.name)))
+    var resultDF = decryptFields.foldLeft(pgmUserDF)((df, field) => {
+      df.withColumn(field.name, when(col("consentflag") === "true", UDFUtils.toDecrypt(col(field.name))).otherwise(lit("")))
     })
+    resultDF = resultDF.withColumn("username",when(col("consentflag") === "true", col("username")).otherwise(lit("")))
     resultDF
   }
 }
