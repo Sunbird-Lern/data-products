@@ -687,6 +687,24 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
       pResponse2.getString("dt_job_submitted") should be("2023-01-25 05:58:18.666")
     }
   }
+
+  it should "execute the saveToFile method" in {
+    implicit val fc = new FrameworkContext()
+    implicit val spark: SparkSession = getSparkSession();
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.ml.exhaust.ProgramUserInfoExhaustJob","modelParams":{"store":"local","mode":"OnDemand","authorizedRoles":["PROGRAM_MANAGER"],"id":"ml-program-user-exhaust","keyspace_name":"sunbird_programs","table":[{"name":"program_enrollment","columns":["user_id","program_name","program_externalId","state_name","district_name","block_name","cluster_name","school_code","school_name","user_type","user_sub_type","organisation_name","pii_consent_required"]},{"name":"user_consent","columns":["user_id","status","last_updated_on"]},{"name":"user","columns":["userid","firstname","lastname","email","phone","username"],"encrypted_columns":["email","phone"],"final_columns":["email","phone","username"]}],"label_mapping":{"user_id":"User UUID","username":"User Name(On user consent)","phone":"Mobile number(On user consent)","email":"Email ID(On user consent)","consentflag":"Consent Provided","consentprovideddate":"Consent Provided Date","program_name":"Program Name","program_externalId":"Program ID","state_name":"State","district_name":"District","block_name":"Block","cluster_name":"Cluster","school_code":"School Id","school_name":"School Name","user_type":"Usertype","user_sub_type":"Usersubtype","organisation_name":"Org Name"},"order_of_csv_column":["User UUID","User Name(On user consent)","Mobile number(On user consent)","Email ID(On user consent)","Consent Provided","Consent Provided Date","Program Name","Program ID","State","District","Block","Cluster","School Id","School Name","Usertype","Usersubtype","Org Name"],"sort":["District","Block","Cluster","School Id","User UUID"],"quote_column":["User Name(On user consent)","Program Name"],"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"localhost","sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","sparkUserDbRedisPort":6381,"fromDate":"","toDate":"","key":"ml_reports/","format":"csv"},"output":[{"to":"file","params":{"file":"ml_reports/"}}],"parallelization":8,"appName":"Program UserInfo Exhaust"}"""
+    val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
+    implicit val config = jobConfig
+
+    val jobRequest = JobRequest("program_601429016a1ef53356b1d714:01250894314817129555", "37564AN8F134RR7532F125651B51S17D", "program-user-exhaust", "SUBMITTED", """{"type":"program-user-exhaust","params":{"filters":[{"table_name":"program_enrollment","table_filters":[{"name":"program_id","operator":"=","value":"62205480a81abe61c07e5058"}]},{"table_name":"user_consent","table_filters":[{"name":"object_id","operator":"=","value":"62205480a81abe61c07e5058"}]}]},"title":"User Detail Report"}""", "ml-program-test-user-01", "ORG_001", System.currentTimeMillis(), None, None, None, None, Option(""), Option(0), Option("test1234"))
+    val req = new JobRequest()
+    val jobRequestArr = Array(jobRequest)
+    val storageConfig = StorageConfig("local","reports","ml_reports",Some("reports_storage_key"),Some("reports_storage_secret"))
+    implicit val conf = spark.sparkContext.hadoopConfiguration
+
+    val requestId = Option("37564AN8F134RR7532F125651B51S17D")
+
+    ProgramUserInfoExhaustJob.saveToFile(spark.emptyDataFrame, storageConfig, requestId, Option("ORG_001"), List(), 10)
+  }
   def getDate(): String = {
     val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyyMMdd").withZone(DateTimeZone.forOffsetHoursMinutes(5, 30));
     dateFormat.print(System.currentTimeMillis());
