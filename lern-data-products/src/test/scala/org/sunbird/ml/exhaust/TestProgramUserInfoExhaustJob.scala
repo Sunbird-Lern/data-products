@@ -564,15 +564,6 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
 
     ProgramUserInfoExhaustJob.saveRequests(storageConfig, jobRequestArr)
 
-    val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='program-user-exhaust'")
-    while (pResponse.next()) {
-      pResponse.getString("status") should be("SUCCESS")
-      pResponse.getString("err_message") should be("")
-      pResponse.getString("dt_job_submitted") should be("2023-01-25 05:58:18.666")
-      pResponse.getString("download_urls") should be(s"{ml_reports/program-user-exhaust/${requestId}_${getDate()}.zip}")
-      pResponse.getString("dt_file_created") should be(null)
-      pResponse.getString("iteration") should be("0")
-    }
   }
 
   it should "Insert status failed as userConsent is not provided" in {
@@ -642,6 +633,28 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     updatedJobRequest2.status should be("SUBMITTED")
   }
 
+  it should "user info report with multiple user consent filter's for a given program" in {
+    EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
+    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_602512d8e6aefa27d9629bc3:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"updated_at\",\"operator\":\"<=\",\"value\":\"2022-12-23\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"user_id\",\"operator\":\"=\",\"value\":\"489be8be-f6ab-482d-8b31-12ac7eb5085c\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
+    implicit val fc = new FrameworkContext()
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.ml.exhaust.ProgramUserInfoExhaustJob","modelParams":{"store":"local","mode":"OnDemand","authorizedRoles":["PROGRAM_MANAGER"],"id":"ml-program-user-exhaust","keyspace_name":"sunbird_programs","table":[{"name":"program_enrollment","columns":["user_id","program_name","program_externalId","state_name","district_name","block_name","cluster_name","school_code","school_name","user_type","user_sub_type","organisation_name","pii_consent_required"]},{"name":"user_consent","columns":["user_id","status","last_updated_on"]},{"name":"user","columns":["userid","firstname","lastname","email","phone","username"],"encrypted_columns":["email","phone"],"final_columns":["email","phone","username"]}],"label_mapping":{"user_id":"User UUID","username":"User Name(On user consent)","phone":"Mobile number(On user consent)","email":"Email ID(On user consent)","consentflag":"Consent Provided","consentprovideddate":"Consent Provided Date","program_name":"Program Name","program_externalId":"Program ID","state_name":"State","district_name":"District","block_name":"Block","cluster_name":"Cluster","school_code":"School Id","school_name":"School Name","user_type":"Usertype","user_sub_type":"Usersubtype","organisation_name":"Org Name"},"order_of_csv_column":["User UUID","User Name(On user consent)","Mobile number(On user consent)","Email ID(On user consent)","Consent Provided","Consent Provided Date","Program Name","Program ID","State","District","Block","Cluster","School Id","School Name","Usertype","Usersubtype","Org Name"],"sort":["District","Block","Cluster","School Id","User UUID"],"quote_column":["User Name(On user consent)","Program Name"],"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"localhost","sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","sparkUserDbRedisPort":6381,"fromDate":"","toDate":"","key":"ml_reports/","format":"csv"},"output":[{"to":"file","params":{"file":"ml_reports/"}}],"parallelization":8,"appName":"Program UserInfo Exhaust"}"""
+    val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
+    implicit val config = jobConfig
+
+    val requestId = "37564AN8F134RR7532F125651B51S17D"
+
+    ProgramUserInfoExhaustJob.execute()
+
+    val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='program-user-exhaust'")
+    while (pResponse.next()) {
+      pResponse.getString("status") should be("SUCCESS")
+      pResponse.getString("err_message") should be("")
+      pResponse.getString("dt_job_submitted") should be("2023-01-25 05:58:18.666")
+      pResponse.getString("download_urls") should be(s"{ml_reports/program-user-exhaust/${requestId}_${getDate()}.zip}")
+      pResponse.getString("dt_file_created") should be(null)
+      pResponse.getString("iteration") should be("0")
+    }
+  }
   def getDate(): String = {
     val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyyMMdd").withZone(DateTimeZone.forOffsetHoursMinutes(5, 30));
     dateFormat.print(System.currentTimeMillis());

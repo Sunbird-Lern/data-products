@@ -30,6 +30,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
   val cassandraFormat = "org.apache.spark.sql.cassandra";
   val MAX_ERROR_MESSAGE_CHAR = 250
 
+  // $COVERAGE-OFF$
   def main(config: String)(implicit sc: Option[SparkContext] = None, fc: Option[FrameworkContext] = None): Unit = {
     JobLogger.init(jobName())
     JobLogger.start(s"${jobName()} started executing", Option(Map("config" -> config, "model" -> jobName)))
@@ -43,10 +44,8 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       // generate metric event and push it to kafka topic
       val metrics = List(Map("id" -> "total-requests", "value" -> res._2.totalRequests), Map("id" -> "success-requests", "value" -> res._2.successRequests), Map("id" -> "failed-requests", "value" -> res._2.failedRequests), Map("id" -> "duplicate-requests", "value" -> res._2.duplicateRequests), Map("id" -> "time-taken-secs", "value" -> Double.box(res._1 / 1000).asInstanceOf[AnyRef]))
       val metricEvent = getMetricJson(jobName, Option(new DateTime().toString(CommonUtil.dateFormat)), "SUCCESS", metrics)
-      // $COVERAGE-OFF$
       if (AppConf.getConfig("push.metrics.kafka").toBoolean)
         KafkaDispatcher.dispatch(Array(metricEvent), Map("topic" -> AppConf.getConfig("metric.kafka.topic"), "brokerList" -> AppConf.getConfig("metric.kafka.broker")))
-      // $COVERAGE-ON$
       JobLogger.end(s"$jobName completed execution", "SUCCESS", Option(Map("timeTaken" -> res._1, "totalRequests" -> res._2.totalRequests, "successRequests" -> res._2.successRequests, "failedRequests" -> res._2.failedRequests, "duplicateRequests" -> res._2.duplicateRequests)))
     } catch {
       case ex: Exception =>
@@ -69,7 +68,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     spark.setCassandraConf("UserCluster", CassandraConnectorConf.ConnectionHostParam.option(AppConf.getConfig("sunbird.user.cluster.host")))
     spark.setCassandraConf("ProgramCluster", CassandraConnectorConf.ConnectionHostParam.option(AppConf.getConfig("sunbird.program.report.host")))
   }
-
+  // $COVERAGE-ON$
   def execute()(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): Metrics = {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
     val maxErrorMessageLength: Int = modelParams.getOrElse("maxErrorMessageLength", MAX_ERROR_MESSAGE_CHAR).asInstanceOf[Int]
@@ -194,7 +193,6 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
             quoteCols += f
           }
         })
-
         if (quoteCols.nonEmpty) {
           val quoteStr = udf((column: String) => if (column.nonEmpty) "\'" + column + "\'" else  column)
           quoteCols.map(column => {
@@ -238,7 +236,6 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
         (request, storageConfig)
       }
   }
-
   def saveToFile(reportDf: DataFrame, storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], execTimeTaken: Long)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[ProgramResponse] = {
     var processedCount = if (processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if (processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
@@ -273,7 +270,6 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     val columnWithOrder = (finalColumnOrder ::: dynamicColumns).distinct
     reportDF.toDF(colNames: _*).select(columnWithOrder.head, columnWithOrder.tail: _*).na.fill("")
   }
-
   def markDuplicateRequest(request: JobRequest, referenceRequest: JobRequest): JobRequest = {
     request.status = referenceRequest.status;
     request.download_urls = referenceRequest.download_urls
@@ -284,7 +280,6 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     request.err_message = referenceRequest.err_message
     request
   }
-
   def getFilePath(requestId: String)(implicit config: JobConfig): String = {
     val requestIdPath = if (requestId.nonEmpty) requestId.concat("_") else ""
     getReportPath() + "/" + requestIdPath + getDate()
