@@ -1,6 +1,6 @@
 package org.sunbird.ml.exhaust
 
-import org.apache.spark.sql.functions.{col, expr, lit, when}
+import org.apache.spark.sql.functions.{col, explode, expr, first, lit, when}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
@@ -57,9 +57,10 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
 
       val modelParamsPgmEnroll = modelParams.getOrElse("table", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]].find(f => f("name") == "program_enrollment").getOrElse(Map())
       val pgmEnrollCols: List[String] = modelParamsPgmEnroll.getOrElse("columns", List[String]()).asInstanceOf[List[String]]
+      val entitiesPgmEnrollCols: List[String] = modelParamsPgmEnroll.getOrElse("user_locations_columns", List[String]()).asInstanceOf[List[String]]
 
       val resPgmEnrollDataDf = CommonUtil.time({
-        val pgmEnrollDataDf = getProgramEnrolment(multiplePgmEnrollFilter, pgmEnrollCols, true)
+        val pgmEnrollDataDf = getProgramEnrolment(multiplePgmEnrollFilter, pgmEnrollCols, entitiesPgmEnrollCols, true)
         (pgmEnrollDataDf.count(), pgmEnrollDataDf)
       })
       JobLogger.log("Time to fetch program enrollment from cassandra", Some(Map("timeTaken" -> resPgmEnrollDataDf._1, "count" -> resPgmEnrollDataDf._2._1)), INFO)
@@ -147,11 +148,16 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
     }
   }
 
-  def getProgramEnrolment(filters: String, cols: List[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
+  def getProgramEnrolment(filters: String, cols: List[String], entityCol:List[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
     JobLogger.log("Program Enrollment Cassandra Table is being queried", None, INFO)
     import spark.implicits._
-    val df = loadData(programEnrolmentDBSettings, cassandraFormat, new StructType())
+    var df = loadData(programEnrolmentDBSettings, cassandraFormat, new StructType())
       .where(s"""$filters""").select(cols.head, cols.tail: _*)
+    df = df.select($"*", explode($"user_locations")).drop("user_locations")
+    val enrollCols: List[String] = cols.filter(_ != "user_locations")
+    val columns = enrollCols ++ entityCol
+    df = df.groupBy(enrollCols.map(col): _*).pivot("key").agg(first("value"))
+      .drop("key", "value").select(columns.head, columns.tail: _*)
     if (persist) df.persist() else df
   }
 
