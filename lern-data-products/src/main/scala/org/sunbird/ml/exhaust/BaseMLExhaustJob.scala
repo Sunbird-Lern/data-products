@@ -247,8 +247,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       val files = reportDf.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
       newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
       List(ProgramResponse(storageConfig.fileName + "/" + filePath + "." + fileFormat, "SUCCESS", "", execTimeTaken, newFileSize))
-    }
-    catch {
+    } catch {
       case ex: Exception =>
         ex.printStackTrace();
         JobLogger.log(s"Failed to save the file ${ex.getMessage}", None, ERROR)
