@@ -1,7 +1,7 @@
 package org.sunbird.ml.exhaust
 
 import org.apache.spark.sql.functions.{col, explode, expr, first, lit, when}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, StorageConfig}
@@ -157,7 +157,13 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
     val enrollCols: List[String] = cols.filter(_ != "user_locations")
     val columns = enrollCols ++ entityCol
     df = df.groupBy(enrollCols.map(col): _*).pivot("key").agg(first("value"))
-      .drop("key", "value").select(columns.head, columns.tail: _*)
+      .drop("key", "value")
+    entityCol.map(entCol=> {
+      if (df.schema.fieldNames.contains(entCol) == false){
+        df = df.withColumn(entCol,lit(null).cast("string"))
+      }
+    })
+    df = df.select(columns.head, columns.tail: _*)
     if (persist) df.persist() else df
   }
 
