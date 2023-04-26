@@ -79,8 +79,8 @@ trait BaseReportsJob {
           sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", AppConf.getConfig(reportsStorageAccountKey));
           sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", AppConf.getConfig(reportsStorageAccountSecret));
         case "oci" =>
-          sc.sparkContext.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", AppConf.getConfig(reportsStorageAccountKey));
-          sc.sparkContext.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", AppConf.getConfig(reportsStorageAccountSecret));
+          sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", AppConf.getConfig(reportsStorageAccountKey));
+          sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", AppConf.getConfig(reportsStorageAccountSecret));
         case "azure" =>
           val storageKeyValue = AppConf.getConfig(reportsStorageAccountKey);
           sc.hadoopConfiguration.set("fs.azure", "org.apache.hadoop.fs.azure.NativeAzureFileSystem")
