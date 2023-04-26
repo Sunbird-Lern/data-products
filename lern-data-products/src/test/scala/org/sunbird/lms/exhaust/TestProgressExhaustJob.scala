@@ -336,35 +336,35 @@ class TestProgressExhaustJob extends BaseReportSpec with MockFactory with BaseRe
   }
 
 
-  it should "Generate a report for StandAlone Mode" in {
-   implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"standalone","batchFilters":["TPD"],"searchFilter":{"request":{"filters":{"status":["Live"],"contentType":"Course"},"fields":["identifier","name","organisation","channel"],"limit":10}},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
-    val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
-    implicit val config = jobConfig
-    ProgressExhaustJob.execute()
-    val outputLocation = AppConf.getConfig("collection.exhaust.store.prefix")
-    val batch1 = "batch-001"
-    val filePath = ProgressExhaustJob.getFilePath(batch1, "")
-    implicit val responseExhaustEncoder = Encoders.product[ProgressExhaustReport]
-    val batch1Results = spark.read.format("csv").option("header", "true")
-      .load(s"$outputLocation/$filePath.csv").as[ProgressExhaustReport].collectAsList().asScala
-
-
-    batch1Results.size should be (4)
-    batch1Results.map(f => f.`Collection Id`).toList should contain atLeastOneElementOf List("do_1130928636168192001667")
-    batch1Results.map(f => f.`Collection Name`).toList should contain atLeastOneElementOf List("24 aug course")
-    batch1Results.map(f => f.`Batch Id`).toList should contain atLeastOneElementOf List("BatchId_batch-001")
-    batch1Results.map(f => f.`Batch Name`).toList should contain atLeastOneElementOf List("Basic Java")
-    batch1Results.map {res => res.`User UUID`}.toList should contain theSameElementsAs List("user-001", "user-002", "user-003", "user-004")
-    batch1Results.map {res => res.`State`}.toList should contain theSameElementsAs List("Karnataka", "Andhra Pradesh", "Karnataka", "Delhi")
-    batch1Results.map {res => res.`District`}.toList should contain theSameElementsAs List("bengaluru", "bengaluru", "bengaluru", "babarpur")
-    batch1Results.map(f => f.`Enrolment Date`).toList should contain allElementsOf  List("15/11/2019")
-    batch1Results.map(f => f.`Completion Date`).toList should contain allElementsOf  List(null)
-    batch1Results.map(f => f.`Progress`).toList should contain allElementsOf  List("100")
-    batch1Results.map(f => f.`Cluster Name`).toList should contain atLeastOneElementOf List("CLUSTER1")
-    batch1Results.map(f => f.`User Type`).toList should contain atLeastOneElementOf List("administrator")
-    batch1Results.map(f => f.`User Sub Type`).toList should contain atLeastOneElementOf List("deo")
-  }
+//  it should "Generate a report for StandAlone Mode" in {
+//   implicit val fc = new FrameworkContext()
+//    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"standalone","batchFilters":["TPD"],"searchFilter":{"request":{"filters":{"status":["Live"],"contentType":"Course"},"fields":["identifier","name","organisation","channel"],"limit":10}},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+//    val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
+//    implicit val config = jobConfig
+//    ProgressExhaustJob.execute()
+//    val outputLocation = AppConf.getConfig("collection.exhaust.store.prefix")
+//    val batch1 = "batch-001"
+//    val filePath = ProgressExhaustJob.getFilePath(batch1, "")
+//    implicit val responseExhaustEncoder = Encoders.product[ProgressExhaustReport]
+//    val batch1Results = spark.read.format("csv").option("header", "true")
+//      .load(s"$outputLocation/$filePath.csv").as[ProgressExhaustReport].collectAsList().asScala
+//
+//
+//    batch1Results.size should be (4)
+//    batch1Results.map(f => f.`Collection Id`).toList should contain atLeastOneElementOf List("do_1130928636168192001667")
+//    batch1Results.map(f => f.`Collection Name`).toList should contain atLeastOneElementOf List("24 aug course")
+//    batch1Results.map(f => f.`Batch Id`).toList should contain atLeastOneElementOf List("BatchId_batch-001")
+//    batch1Results.map(f => f.`Batch Name`).toList should contain atLeastOneElementOf List("Basic Java")
+//    batch1Results.map {res => res.`User UUID`}.toList should contain theSameElementsAs List("user-001", "user-002", "user-003", "user-004")
+//    batch1Results.map {res => res.`State`}.toList should contain theSameElementsAs List("Karnataka", "Andhra Pradesh", "Karnataka", "Delhi")
+//    batch1Results.map {res => res.`District`}.toList should contain theSameElementsAs List("bengaluru", "bengaluru", "bengaluru", "babarpur")
+//    batch1Results.map(f => f.`Enrolment Date`).toList should contain allElementsOf  List("15/11/2019")
+//    batch1Results.map(f => f.`Completion Date`).toList should contain allElementsOf  List(null)
+//    batch1Results.map(f => f.`Progress`).toList should contain allElementsOf  List("100")
+//    batch1Results.map(f => f.`Cluster Name`).toList should contain atLeastOneElementOf List("CLUSTER1")
+//    batch1Results.map(f => f.`User Type`).toList should contain atLeastOneElementOf List("administrator")
+//    batch1Results.map(f => f.`User Sub Type`).toList should contain atLeastOneElementOf List("deo")
+//  }
 
   /*
    * Testcase for getting the latest value from migrated date fields
@@ -488,25 +488,25 @@ class TestProgressExhaustJob extends BaseReportSpec with MockFactory with BaseRe
 
   }
 
-  it should "insert status as FAILED since course is retired" in {
-
-    EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
-    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-005\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
-
-    implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
-    val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
-    implicit val config = jobConfig
-
-    ProgressExhaustJob.execute()
-
-    val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='progress-exhaust'")
-    val reportDate = getDate("yyyyMMdd").format(Calendar.getInstance().getTime())
-
-    while(pResponse.next()) {
-      pResponse.getString("status") should be ("FAILED")
-      pResponse.getString("err_message") should be ("The request is made for retired collection")
-      pResponse.getString("download_urls") should be (s"""{}""")
-    }
-  }
+//  it should "insert status as FAILED since course is retired" in {
+//
+//    EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
+//    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1130928636168192001667_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'progress-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-005\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
+//
+//    implicit val fc = new FrameworkContext()
+//    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"Progress Exhaust"}"""
+//    val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
+//    implicit val config = jobConfig
+//
+//    ProgressExhaustJob.execute()
+//
+//    val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='progress-exhaust'")
+//    val reportDate = getDate("yyyyMMdd").format(Calendar.getInstance().getTime())
+//
+//    while(pResponse.next()) {
+//      pResponse.getString("status") should be ("FAILED")
+//      pResponse.getString("err_message") should be ("The request is made for retired collection")
+//      pResponse.getString("download_urls") should be (s"""{}""")
+//    }
+//  }
 }

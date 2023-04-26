@@ -73,8 +73,14 @@
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>mockwebserver</artifactId>
-			<version>4.4.0</version>
+			<version>3.12.10</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp-bom</artifactId>
+			<version>3.12.10</version>
+			<type>pom</type>
 		</dependency>
 		<dependency>
 			<groupId>io.dropwizard.metrics</groupId>

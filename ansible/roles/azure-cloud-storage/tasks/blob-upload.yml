@@ -6,6 +6,6 @@
   when: create_container == True
 
 - name: upload file to azure storage container
-  shell: "az storage blob upload --container-name {{ blob_container_name  }} --file {{ local_file_or_folder_path }} --name {{ blob_file_name }} --account-name {{ storage_account_name }} --account-key {{ storage_account_key }}"
+  shell: "az storage blob upload --overwrite --container-name {{ blob_container_name  }} --file {{ local_file_or_folder_path }} --name {{ blob_file_name }} --account-name {{ storage_account_name }} --account-key {{ storage_account_key }}"
   async: 3600
   poll: 10
