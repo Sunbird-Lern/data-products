@@ -24,7 +24,7 @@ class TestOldCertificateMigrationJob extends BaseSpec with MockFactory {
 
   it should "Should migrate the certificates data" in {
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.audit.OldCertificateMigrationJob","modelParams":{"mode":"execute","store":"azure","sparkCassandraConnectionHost":"localhost", "cert_base_path": "https://dev.sunbirded.org/", "cloud_storage_base_url": "https://sunbirddev.blob.core.windows.net", "cloud_store_base_path_placeholder": "CLOUD_BASE_PATH","content_cloud_storage_container": "sunbird-content-staging", "cloud_storage_cname_url": "https://obj.dev.sunbirded.org", "batchId": "0134278454483681283", "kafka_broker": "localhost:29092"},"parallelization":8,"appName":"OldCertificateMigrationJob"}""".stripMargin
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.audit.OldCertificateMigrationJob","modelParams":{"mode":"dryrn","store":"azure","sparkCassandraConnectionHost":"localhost", "cert_base_path": "https://dev.sunbirded.org/", "cloud_storage_base_url": "https://sunbirddev.blob.core.windows.net", "cloud_store_base_path_placeholder": "CLOUD_BASE_PATH","content_cloud_storage_container": "sunbird-content-staging", "cloud_storage_cname_url": "https://obj.dev.sunbirded.org", "batchId": "0134278454483681283", "kafka_broker": "localhost:29092"},"parallelization":8,"appName":"OldCertificateMigrationJob"}""".stripMargin
     implicit val jobConfig: JobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val sc: SparkContext = spark.sparkContext
     val res = OldCertificateMigrationJob.migrateData(jobConfig)
