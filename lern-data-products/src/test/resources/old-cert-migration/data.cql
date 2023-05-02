@@ -1,5 +1,5 @@
 
-CREATE TABLE sunbird.cert_registry (
+CREATE TABLE IF NOT EXISTS sunbird.cert_registry (
     id text PRIMARY KEY,
     accesscode text,
     createdat timestamp,

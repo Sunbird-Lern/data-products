@@ -53,7 +53,9 @@ get_report_job_model_name(){
     "assessment-archived-removal") echo 'org.sunbird.analytics.job.report.AssessmentArchivalJob'
     ;;
     "user-cache-indexer-job") echo 'org.sunbird.userorg.job.report.UserCacheIndexerJob'
-      ;;
+    ;;
+    "old-certificate-migration-job") echo 'org.sunbird.lms.audit.OldCertificateMigrationJob'
+    ;;
     *) echo $1
     ;;
   esac
