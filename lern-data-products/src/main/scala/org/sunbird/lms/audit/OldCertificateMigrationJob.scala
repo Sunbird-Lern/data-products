@@ -9,7 +9,6 @@ import org.apache.spark.sql.{SparkSession, _}
 import org.apache.spark.{SparkContext, sql}
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
-import org.ekstep.analytics.framework.dispatcher.KafkaDispatcher
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{Dispatcher, FrameworkContext, IJob, JobConfig, OutputDispatcher}
 import org.sunbird.lms.job.report.BaseReportsJob
@@ -66,6 +65,7 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     try {
       val res = CommonUtil.time(migrateData(jobConfig))
       val total_records = res._2.count()
+      res._2.unpersist()
       JobLogger.log(s"Updating the $total_records records in the cassandra table", None, INFO)
       JobLogger.end(s"$jobName completed execution", "SUCCESS", Option(Map("timeTaken" -> res._1, "totalRecordsUpdated" -> total_records)))
     } catch {
@@ -82,7 +82,7 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
 
   // $COVERAGE-ON$
   def migrateData(jobConfig: JobConfig)(implicit spark: SparkSession, fc: FrameworkContext): DataFrame = {
-    implicit val dryRunEnabled:Boolean = jobConfig.modelParams.get.getOrElse("mode", "dryrun").asInstanceOf[String].equalsIgnoreCase("dryrun")
+    implicit val executeEnabled:Boolean = jobConfig.modelParams.get.getOrElse("mode", "dryrun").asInstanceOf[String].equalsIgnoreCase("execute")
     val batchIds: List[String] = jobConfig.modelParams.get.getOrElse("batchId", "").asInstanceOf[String].split(",").toList.filter(_.nonEmpty)
     val kafkaTopic: String = jobConfig.modelParams.get.getOrElse("kafka_topic", "rc.certificate.migrate").toString
     val brokerList: String = jobConfig.modelParams.get.getOrElse("kafka_broker", AppConf.getConfig("metric.kafka.broker")).toString
@@ -95,14 +95,16 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     baseUrl = jobConfig.modelParams.get.getOrElse("cloud_storage_cname_url", cloudStoreBasePath).toString
 
     val cbDf = fetchCourseBatchData(spark, batchIds)
-
+    println("fetchCertRegistryData started")
     val crDf = fetchCertRegistryData(spark, cbDf)
-
+    println("fetchCertRegistryData completed")
     val certIssueRDD = crDf.rdd.map(e => generateCertificateEvent(e))
-    if(dryRunEnabled) {
-      OutputDispatcher.dispatch(Dispatcher("file", Map("file" -> "./reports/cert_events.json")), certIssueRDD)(spark.sparkContext, fc)
-    } else {
+
+    if(executeEnabled) {
       OutputDispatcher.dispatch(Dispatcher("kafka", Map("brokerList" -> brokerList, "topic" -> kafkaTopic)), certIssueRDD)(spark.sparkContext, fc)
+    } else {
+      val outputFilePath = jobConfig.modelParams.get.getOrElse("output_file_path", "/mount/data/analytics/reports/") + batchIds.mkString("_") + ".json"
+      OutputDispatcher.dispatch(Dispatcher("file", Map("file" -> outputFilePath)), certIssueRDD)(spark.sparkContext, fc)
     }
     crDf
   }
@@ -122,29 +124,34 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
 
   def fetchCertRegistryData(session: SparkSession, cbDf: DataFrame): DataFrame = {
 //    val schema = new StructType(MapType(StringType,StringType))
-    val certRegistryDF = fetchData(session, certRegistryDBSettings, cassandraUrl, new StructType())
-      .where(col("isrevoked").equalTo(false))
+    var certRegistryDF = fetchData(session, certRegistryDBSettings, cassandraUrl, new StructType())
+      .where(col("isrevoked").equalTo(false) && col("related").isNotNull && col("related").contains("batchId") && col("related").contains("{"))
       .select("id", "data", "related", "createdat", "recipient")
-      .withColumn("related_json", from_json(col("related"), MapType(StringType,StringType)))
-      .drop("related")
-      .withColumnRenamed("related_json", "related")
-      .withColumn("data_json", from_json(col("data"), MapType(StringType,StringType)))
+      .persist()
+    println("data_json ")
+    certRegistryDF = certRegistryDF.withColumn("data_json", from_json(col("data"), MapType(StringType,StringType)))
       .drop("data")
       .withColumnRenamed("data_json", "data")
-      .withColumn("recipient_json", from_json(col("recipient"), MapType(StringType,StringType)))
+    println("data_json completed")
+    certRegistryDF = certRegistryDF.withColumn("related_json", from_json(col("related"), MapType(StringType,StringType)))
+      .drop("related")
+      .withColumnRenamed("related_json", "related")
+    println("related_json completed")
+    certRegistryDF = certRegistryDF.withColumn("recipient_json", from_json(col("recipient"), MapType(StringType,StringType)))
       .drop("recipient")
       .withColumnRenamed("recipient_json", "recipient")
+    println("recipient_json completed")
 
-      .where(
-        col("related.batchId").isNotNull &&
-          col("related.courseId").isNotNull
-      )
-
-    certRegistryDF.join(cbDf, certRegistryDF("related.batchId") === cbDf("batchid") && certRegistryDF("related.courseId") === cbDf("courseid"), "inner")
+    var resultDf = certRegistryDF.join(cbDf, certRegistryDF("related.batchId") === cbDf("batchid") && certRegistryDF("related.courseId") === cbDf("courseid"), "inner")
       .select("id", "data", "related", "cert_templates", "recipient", "createdat", "courseid", "batchid")
+    resultDf.show(2000, false)
+    resultDf = resultDf.na.fill("")
+    resultDf
   }
 
   def generateCertificateEvent(row: Row): String = {
+    val oldId = row.get(0).asInstanceOf[String]
+
     val recipientName = row.get(4).asInstanceOf[Map[String, AnyRef]].getOrElse("name", "")
     val recipientId = row.get(4).asInstanceOf[Map[String, AnyRef]].getOrElse("id", "").asInstanceOf[String]
     val badge = JSONUtils.deserialize[Map[String, AnyRef]](row.get(1).asInstanceOf[Map[String, AnyRef]].getOrElse("badge", "{}").asInstanceOf[String])
@@ -152,10 +159,9 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     val templateName = badge.getOrElse("criteria", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]].getOrElse("narrative", "").asInstanceOf[String]
 
     val dateFormatter = new SimpleDateFormat("yyyy-MM-dd")
-    val oldId = row.get(0).asInstanceOf[String]
     val related = row.get(2).asInstanceOf[Map[String, String]]
 
-    val templateData = row.get(3).asInstanceOf[Map[String, Map[String, AnyRef]]].filter(rec => rec._2.getOrElse("name", "").equals(templateName)).head._2
+    val templateData = row.get(3).asInstanceOf[Map[String, Map[String, AnyRef]]].filter(rec => rec._2.getOrElse("name", "").toString.equalsIgnoreCase(templateName)).head._2
     val eData = Map[String, AnyRef] (
       "issuedDate" -> dateFormatter.format(row.get(5)),
       "data" -> List(Map[String, AnyRef]("recipientName" -> recipientName, "recipientId" -> recipientId)),
