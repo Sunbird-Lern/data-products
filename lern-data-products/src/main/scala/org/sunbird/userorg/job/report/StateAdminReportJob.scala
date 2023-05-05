@@ -3,12 +3,16 @@ package org.sunbird.userorg.job.report
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.{col, lit, when, _}
 import org.apache.spark.sql.{DataFrame, _}
+import org.bouncycastle.util.io.pem.PemReader
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
 import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
+import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
+import org.sunbird.core.util.DecryptUtil.{ALGORITHM, key}
+import org.sunbird.core.util.EncryptFileUtil.encryptionFile
 
 import scala.collection.mutable.ListBuffer
 
@@ -41,9 +45,12 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     private def execute(config: JobConfig)(implicit sparkSession: SparkSession, fc: FrameworkContext) = {
     
         val resultDf = generateExternalIdReport();
+      resultDf.show(false)
         JobLogger.end("ExternalIdReportJob completed successfully!", "SUCCESS", Option(Map("config" -> config, "model" -> name)))
+
         generateSelfUserDeclaredZip(resultDf, config)
         JobLogger.end("ExternalIdReportJob zip completed successfully!", "SUCCESS", Option(Map("config" -> config, "model" -> name)))
+
     }
     
     // $COVERAGE-ON$ Enabling scoverage for other methods
@@ -62,7 +69,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             col("userinfo").getItem("declared-school-name").as("declared-school-name"), col("userinfo").getItem("declared-school-udise-code").as("declared-school-udise-code"),col("userinfo").getItem("declared-ext-id").as("declared-ext-id")).drop("userinfo");
         val locationDF = locationData()
         //to-do later check if externalid is necessary not-null check is necessary
-        val orgExternalIdDf = loadOrganisationData().select("externalid","channel", "id","orgName").filter(col("channel").isNotNull)
+        val orgExternalIdDf = loadOrganisationData().select("externalid","channel", "id","orgName","rootorgid").filter(col("channel").isNotNull)
         val userSelfDeclaredExtIdDF = userSelfDeclaredUserInfoDataDF.join(orgExternalIdDf, userSelfDeclaredUserInfoDataDF.col("orgid") === orgExternalIdDf.col("id"), "leftouter").
             select(userSelfDeclaredUserInfoDataDF.col("*"), orgExternalIdDf.col("*"))
         
@@ -91,7 +98,19 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userDenormLocationDF.col("*"), decryptedUserProfileDF.col("decrypted-email"), decryptedUserProfileDF.col("decrypted-phone"))
         val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
-        saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
+      denormLocationUserDecryptData.show(false)
+        val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
+      val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
+      channelRootIdMap.foreach(pair => {
+        getSecuredExhaustFile("user-admin-reports", pair._2, objectKey+pair._2+".csv")
+      })
+
+      resultDf
+    }
+
+    def getChannelWithRootOrgId(userExternalDecryptData: DataFrame)(implicit sparkSession: SparkSession, fc: FrameworkContext) : scala.collection.Map[String, String] = {
+      val channelRootIdMap = userExternalDecryptData.rdd.map(r => (r.getAs[String]("channel"), r.getAs[String]("rootorgid"))).collectAsMap()
+      channelRootIdMap
     }
     
     def decryptPhoneEmailInDF(userDF: DataFrame, email: String, phone: String)(implicit sparkSession: SparkSession, fc: FrameworkContext) : DataFrame = {
@@ -110,7 +129,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     
     def generateSelfUserDeclaredZip(blockData: DataFrame, jobConfig: JobConfig)(implicit fc: FrameworkContext): Unit = {
         val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
-        blockData.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")), Some(storageService), Some(true))
+        blockData.saveToBlobStore(storageConfig, "text", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")), Some(storageService), Some(true))
+        //resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
         JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
     }
     
@@ -135,6 +155,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     }
     
     private def saveUserSelfDeclaredExternalInfo(userExternalDecryptData: DataFrame, userDenormLocationDF: DataFrame): DataFrame ={
+      userExternalDecryptData.show(false)
+      userDenormLocationDF.show(false)
         var userDenormLocationDFWithCluster : DataFrame = null;
         if(!userDenormLocationDF.columns.contains("cluster")) {
             if(!userDenormLocationDF.columns.contains("block")) {
@@ -166,7 +188,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
         resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
-        resultDf
+      encryptionFile()
+     resultDf
     }
 
     def locationIdListFunction(location: String): List[String] = {
@@ -206,4 +229,14 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
 
     val addUserType = udf[String, String, String](parseProfileTypeFunction)
 
+}
+
+object StateAdminReportJobMain extends App{
+    StateAdminReportJob.main("""{"model":"Test"}""")
+}
+
+object StateAdminReportJobMain1 {
+    def main(args: Array[String]): Unit = {
+        StateAdminReportJob.main("""{"model":"Test"}""")
+    }
 }
