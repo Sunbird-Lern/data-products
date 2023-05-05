@@ -98,7 +98,7 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     println("fetchCertRegistryData started")
     val crDf = fetchCertRegistryData(spark, cbDf)
     println("fetchCertRegistryData completed")
-    val certIssueRDD = crDf.rdd.map(e => generateCertificateEvent(e))
+    val certIssueRDD = crDf.rdd.map(e => generateCertificateEvent(e)).filter((e:String) => e.nonEmpty)
 
     if(executeEnabled) {
       OutputDispatcher.dispatch(Dispatcher("kafka", Map("brokerList" -> brokerList, "topic" -> kafkaTopic)), certIssueRDD)(spark.sparkContext, fc)
@@ -162,11 +162,16 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     val related = row.get(2).asInstanceOf[Map[String, String]]
 
     val templateData = row.get(3).asInstanceOf[Map[String, Map[String, AnyRef]]].filter(rec => rec._2.getOrElse("name", "").toString.equalsIgnoreCase(templateName)).head._2
+
+    val templateUrl = templateData.getOrElse("url", "").asInstanceOf[String].replace(cloudStoreBasePathPlaceholder, baseUrl+"/"+contentCloudStorageContainer)
+    if(templateUrl.isEmpty){
+      return ""
+    }
     val eData = Map[String, AnyRef] (
       "issuedDate" -> dateFormatter.format(row.get(5)),
       "data" -> List(Map[String, AnyRef]("recipientName" -> recipientName, "recipientId" -> recipientId)),
       "criteria" -> Map[String, String]("narrative" -> templateName),
-      "svgTemplate" -> templateData.getOrElse("url", "").asInstanceOf[String].replace(cloudStoreBasePathPlaceholder, baseUrl+"/"+contentCloudStorageContainer),
+      "svgTemplate" -> templateUrl,
       "oldId" -> oldId,
       "templateId" -> templateData.getOrElse("identifier", ""),
       "userId" -> recipientId,
