@@ -11,6 +11,7 @@ import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
+import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
 
 import java.io.File
 import java.nio.file.Paths
@@ -139,7 +140,8 @@ trait OnDemandExhaustJob {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
         try {
-          zipAndEncrypt(url, storageConfig, request)
+          getSecuredExhaustFile(request.job_id, null, request.requested_channel, url, null, storageConfig, request)
+          //zipAndEncrypt(url, storageConfig, request)
           url.replace(".csv", ".zip")
         } catch {
           case ex: Exception => ex.printStackTrace();
@@ -161,7 +163,7 @@ trait OnDemandExhaustJob {
 
   def canZipExceptionBeIgnored(): Boolean = true
 
-  @throws(classOf[Exception])
+  /*@throws(classOf[Exception])
   private def zipAndEncrypt(url: String, storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): String = {
 
     val path = Paths.get(url);
@@ -213,7 +215,7 @@ trait OnDemandExhaustJob {
     // $COVERAGE-ON$
     fc.getHadoopFileUtil().delete(conf, tempDir);
     resultFile;
-  }
+  }*/
 
   def markRequestAsFailed(request: JobRequest, failedMsg: String, completed_Batches: Option[String] = None): JobRequest = {
     request.status = "FAILED";

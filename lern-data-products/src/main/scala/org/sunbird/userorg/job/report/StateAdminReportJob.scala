@@ -102,7 +102,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       channelRootIdMap.foreach(pair => {
-        getSecuredExhaustFile("user-admin-reports", pair._2, objectKey+pair._2+".csv")
+        getSecuredExhaustFile("user-admin-reports", pair._2, null, objectKey+pair._2+".csv", null, storageConfig, null)(sparkSession.sparkContext.hadoopConfiguration, fc)
       })
 
       resultDf
@@ -129,7 +129,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     
     def generateSelfUserDeclaredZip(blockData: DataFrame, jobConfig: JobConfig)(implicit fc: FrameworkContext): Unit = {
         val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
-        blockData.saveToBlobStore(storageConfig, "text", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")), Some(storageService), Some(true))
+        blockData.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")), Some(storageService), Some(true))
         //resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
         JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
     }

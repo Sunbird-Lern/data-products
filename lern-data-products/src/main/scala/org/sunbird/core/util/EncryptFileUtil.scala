@@ -42,7 +42,7 @@ object EncryptFileUtil extends Serializable {
         val password = generateUniqueId
         val encryptCipher : Cipher = Cipher.getInstance("RSA")
         encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        val encryptedUUIDBytes = encryptCipher.doFinal(password.toString.getBytes)
+        val encryptedUUIDBytes = encryptCipher.doFinal(password.toString.getBytes("UTF-8"))
 
 
         val key = generateAESKey(password)
@@ -55,7 +55,49 @@ object EncryptFileUtil extends Serializable {
 
 
         try {
-            val file = new File("/Users/harikumarpalemkota/Documents/workspace/data-products/src/test/resources/admin-user-reports/declared_user_detail/ap.txt")
+            val file = new File(csvFilePath)
+            val stream1 : FileOutputStream = new FileOutputStream(file)
+            try {
+                stream1.write(encryptedUUIDBytes)
+                stream1.write(encryptedAESContent)
+            }
+            finally if (stream1 != null) stream1.close()
+        }
+    }
+
+    def encryptionFile()  : Unit = {
+
+        val publicKeyFile : File = new File("/Users/harikumarpalemkota/Documents/workspace/data-products/src/test/resources/admin-user-reports/declared_user_detail/public.pem")
+        val publicKeyBytes = Files.readAllBytes(publicKeyFile.toPath)
+
+        import org.bouncycastle.util.io.pem.PemObject
+        val pemReader = new PemReader(new java.io.StringReader(new String(publicKeyBytes)))
+        val pemObject = pemReader.readPemObject()
+
+
+        import java.security.KeyFactory
+        import java.security.spec.EncodedKeySpec
+        import java.security.spec.X509EncodedKeySpec
+        val keyFactory = KeyFactory.getInstance("RSA")
+        val publicKeySpec = new X509EncodedKeySpec(pemObject.getContent)
+        val publicKey = keyFactory.generatePublic(publicKeySpec)
+        val password = generateUniqueId
+        val encryptCipher : Cipher = Cipher.getInstance("RSA")
+        encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        val encryptedUUIDBytes = encryptCipher.doFinal(password.toString.getBytes("UTF-8"))
+
+
+        val key = generateAESKey(password)
+        val encryptAESCipher : Cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        val fileBytes = Files.readAllBytes(Paths.get("/Users/harikumarpalemkota/Documents/workspace/data-products/src/test/resources/admin-user-reports/declared_user_detail/ap.csv"))
+        //val fileBytes = Files.readAllBytes(Paths.get(csvFilePath))
+        encryptAESCipher.init(Cipher.ENCRYPT_MODE, key)
+        val encryptedAESContent = encryptAESCipher.doFinal(fileBytes)
+
+
+
+        try {
+            val file = new File("/Users/harikumarpalemkota/Documents/workspace/data-products/src/test/resources/admin-user-reports/declared_user_detail/ap.csv")
             val stream1 : FileOutputStream = new FileOutputStream(file)
             try {
                 stream1.write(encryptedUUIDBytes)
