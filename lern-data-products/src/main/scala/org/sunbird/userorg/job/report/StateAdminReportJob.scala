@@ -5,7 +5,6 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.{col, lit, when, _}
 import org.apache.spark.sql.{DataFrame, _}
-import org.bouncycastle.util.io.pem.PemReader
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
@@ -13,11 +12,8 @@ import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobCon
 import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
 import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
-import org.sunbird.core.util.DecryptUtil.{ALGORITHM, key}
 import org.ekstep.analytics.framework.util.CommonUtil
-import org.sunbird.core.util.EncryptFileUtil.encryptionFile
 
-import java.io.File
 import java.nio.file.Paths
 import scala.collection.mutable.ListBuffer
 
@@ -50,7 +46,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     private def execute(config: JobConfig)(implicit sparkSession: SparkSession, fc: FrameworkContext) = {
     
         val resultDf = generateExternalIdReport();
-      resultDf.show(false)
         JobLogger.end("ExternalIdReportJob completed successfully!", "SUCCESS", Option(Map("config" -> config, "model" -> name)))
 
     }
@@ -100,7 +95,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userDenormLocationDF.col("*"), decryptedUserProfileDF.col("decrypted-email"), decryptedUserProfileDF.col("decrypted-phone"))
         val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
-      denormLocationUserDecryptData.show(false)
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       channelRootIdMap.foreach(pair => {
@@ -192,8 +186,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     }
     
     private def saveUserSelfDeclaredExternalInfo(userExternalDecryptData: DataFrame, userDenormLocationDF: DataFrame): DataFrame ={
-      userExternalDecryptData.show(false)
-      userDenormLocationDF.show(false)
         var userDenormLocationDFWithCluster : DataFrame = null;
         if(!userDenormLocationDF.columns.contains("cluster")) {
             if(!userDenormLocationDF.columns.contains("block")) {

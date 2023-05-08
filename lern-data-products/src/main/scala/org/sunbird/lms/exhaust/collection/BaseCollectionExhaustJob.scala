@@ -332,7 +332,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     }
   }
 
-  def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
+  def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest] )(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
 
     var processedCount = if(processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if(processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
@@ -360,7 +360,6 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
             val fileFormat = "csv"
             val filePath = getFilePath(batch.batchId, requestId.getOrElse(""))
             val files = reportDF.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
-            //getSecuredExhaustFile(jobId(), null, requestChannel, filePath+"."+fileFormat, encryptionKey)
             newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
             CollectionBatchResponse(batch.batchId, filePath + "." + fileFormat, "SUCCESS", "", res._1, newFileSize);
           } catch {
