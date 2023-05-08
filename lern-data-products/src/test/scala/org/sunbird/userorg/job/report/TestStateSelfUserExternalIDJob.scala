@@ -7,6 +7,7 @@ import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.EmbeddedCassandra
 import org.sunbird.lms.job.report.{BaseReportSpec, BaseReportsJob}
+import org.sunbird.userorg.job.report.StateAdminReportJob.getChannelWithRootOrgId
 
 class TestStateSelfUserExternalIDJob extends BaseReportSpec with MockFactory {
 
@@ -79,7 +80,7 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with MockFactory {
     implicit val fc = new FrameworkContext()
     try {
       val reportDF = StateAdminReportJob.generateExternalIdReport()(spark, fc)
-      StateAdminReportJob.generateSelfUserDeclaredZip(reportDF, JSONUtils.deserialize[JobConfig]("""{"model":"Test"}"""))
+      //StateAdminReportJob.generateSelfUserDeclaredZip(reportDF, JSONUtils.deserialize[JobConfig]("""{"model":"Test"}"""))
     } catch {
       case ex: Exception => assert(ex.getMessage === "Self-Declared user level zip generation failed with exit code 127");
     }

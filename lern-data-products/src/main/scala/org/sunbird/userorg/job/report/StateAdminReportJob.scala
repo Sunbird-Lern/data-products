@@ -225,7 +225,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
         resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
-      encryptionFile()
      resultDf
     }
 
@@ -266,14 +265,4 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
 
     val addUserType = udf[String, String, String](parseProfileTypeFunction)
 
-}
-
-object StateAdminReportJobMain extends App{
-    StateAdminReportJob.main("""{"model":"Test"}""")
-}
-
-object StateAdminReportJobMain1 {
-    def main(args: Array[String]): Unit = {
-        StateAdminReportJob.main("""{"model":"Test"}""")
-    }
 }
