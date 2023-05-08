@@ -158,7 +158,7 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     val courseName = badge.getOrElse("name", "")
     val templateName = badge.getOrElse("criteria", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]].getOrElse("narrative", "").asInstanceOf[String]
 
-    val dateFormatter = new SimpleDateFormat("yyyy-MM-dd")
+    val dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
     val related = row.get(2).asInstanceOf[Map[String, String]]
 
     val templateData = row.get(3).asInstanceOf[Map[String, Map[String, AnyRef]]].filter(rec => rec._2.getOrElse("name", "").toString.equalsIgnoreCase(templateName)).head._2
