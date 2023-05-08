@@ -14,7 +14,7 @@ import org.sunbird.cloud.storage.conf.AppConf
 import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
 import org.ekstep.analytics.framework.util.CommonUtil
 
-import java.nio.file.Paths
+import java.io.File
 import scala.collection.mutable.ListBuffer
 
 case class UserSelfDeclared(userid: String, orgid: String, persona: String, errortype: String,
@@ -44,7 +44,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     }
     
     private def execute(config: JobConfig)(implicit sparkSession: SparkSession, fc: FrameworkContext) = {
-    
         val resultDf = generateExternalIdReport();
         JobLogger.end("ExternalIdReportJob completed successfully!", "SUCCESS", Option(Map("config" -> config, "model" -> name)))
 
@@ -126,12 +125,9 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     
     def generateSelfUserDeclaredZip(filename: String)(implicit conf: Configuration, fc: FrameworkContext): Unit = {
 
-      val url = objectKey+"declared_user_detail"+filename
-      val path = Paths.get(url);
       val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
 
-      val localPath = path.getFileName.toString;
-      //fc.getHadoopFileUtil().delete(conf, tempDir);
+      val localPath = objectKey+"declared_user_detail/"+filename;
       val filePrefix = storageConfig.store.toLowerCase() match {
         // $COVERAGE-OFF$ Disabling scoverage
         case "s3" =>
@@ -144,25 +140,18 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         case _ =>
           storageConfig.fileName
       }
-      val objKey = url.replace(filePrefix, "");
+      val objKey = localPath.replace(filePrefix, "");
 
       // $COVERAGE-ON$
       val zipPath = localPath.replace("csv", "zip")
       val zipObjectKey = objKey.replace("csv", "zip")
-      val zipLocalObjKey = url.replace("csv", "zip")
 
 
-      new ZipFile(zipPath)
+      new ZipFile(zipPath).addFile(new File(localPath));
 
-      val resultFile = if (storageConfig.store.equals("local")) {
-        fc.getHadoopFileUtil().copy(zipPath, zipLocalObjKey, conf)
-      }
-      // $COVERAGE-OFF$ Disabling scoverage
-      else {
+      if (!storageConfig.store.equals("local")) {
         storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None);
       }
-      // $COVERAGE-ON$
-      //fc.getHadoopFileUtil().delete(conf, tempDir);
     }
     
     private def decryptDF(emailMap: collection.Map[String, String], phoneMap: collection.Map[String, String]) (implicit sparkSession: SparkSession, fc: FrameworkContext) : DataFrame = {
