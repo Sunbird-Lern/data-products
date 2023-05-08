@@ -1,5 +1,7 @@
 package org.sunbird.userorg.job.report
 
+import net.lingala.zip4j.ZipFile
+import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.{col, lit, when, _}
 import org.apache.spark.sql.{DataFrame, _}
@@ -12,8 +14,11 @@ import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
 import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
 import org.sunbird.core.util.DecryptUtil.{ALGORITHM, key}
+import org.ekstep.analytics.framework.util.CommonUtil
 import org.sunbird.core.util.EncryptFileUtil.encryptionFile
 
+import java.io.File
+import java.nio.file.Paths
 import scala.collection.mutable.ListBuffer
 
 case class UserSelfDeclared(userid: String, orgid: String, persona: String, errortype: String,
@@ -47,9 +52,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val resultDf = generateExternalIdReport();
       resultDf.show(false)
         JobLogger.end("ExternalIdReportJob completed successfully!", "SUCCESS", Option(Map("config" -> config, "model" -> name)))
-
-        generateSelfUserDeclaredZip(resultDf, config)
-        JobLogger.end("ExternalIdReportJob zip completed successfully!", "SUCCESS", Option(Map("config" -> config, "model" -> name)))
 
     }
     
@@ -102,9 +104,10 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       channelRootIdMap.foreach(pair => {
-        getSecuredExhaustFile("user-admin-reports", pair._2, null, objectKey+pair._2+".csv", null, storageConfig, null)(sparkSession.sparkContext.hadoopConfiguration, fc)
+        getSecuredExhaustFile("user-admin-reports", pair._2, null, objectKey+pair._1+".csv", null, storageConfig, null)(sparkSession.sparkContext.hadoopConfiguration, fc)
+        generateSelfUserDeclaredZip(pair._1+".csv")(sparkSession.sparkContext.hadoopConfiguration, fc)
       })
-
+      JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
       resultDf
     }
 
@@ -127,11 +130,45 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         userProfileDf
     }
     
-    def generateSelfUserDeclaredZip(blockData: DataFrame, jobConfig: JobConfig)(implicit fc: FrameworkContext): Unit = {
-        val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
-        blockData.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")), Some(storageService), Some(true))
-        //resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
-        JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
+    def generateSelfUserDeclaredZip(filename: String)(implicit conf: Configuration, fc: FrameworkContext): Unit = {
+
+      val url = objectKey+"declared_user_detail"+filename
+      val path = Paths.get(url);
+      val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
+
+      val localPath = path.getFileName.toString;
+      //fc.getHadoopFileUtil().delete(conf, tempDir);
+      val filePrefix = storageConfig.store.toLowerCase() match {
+        // $COVERAGE-OFF$ Disabling scoverage
+        case "s3" =>
+          CommonUtil.getS3File(storageConfig.container, "")
+        case "azure" =>
+          CommonUtil.getAzureFile(storageConfig.container, "", storageConfig.accountKey.getOrElse("azure_storage_key"))
+        case "gcloud" =>
+          CommonUtil.getGCloudFile(storageConfig.container, "")
+        // $COVERAGE-ON$ for case: local
+        case _ =>
+          storageConfig.fileName
+      }
+      val objKey = url.replace(filePrefix, "");
+
+      // $COVERAGE-ON$
+      val zipPath = localPath.replace("csv", "zip")
+      val zipObjectKey = objKey.replace("csv", "zip")
+      val zipLocalObjKey = url.replace("csv", "zip")
+
+
+      new ZipFile(zipPath)
+
+      val resultFile = if (storageConfig.store.equals("local")) {
+        fc.getHadoopFileUtil().copy(zipPath, zipLocalObjKey, conf)
+      }
+      // $COVERAGE-OFF$ Disabling scoverage
+      else {
+        storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None);
+      }
+      // $COVERAGE-ON$
+      //fc.getHadoopFileUtil().delete(conf, tempDir);
     }
     
     private def decryptDF(emailMap: collection.Map[String, String], phoneMap: collection.Map[String, String]) (implicit sparkSession: SparkSession, fc: FrameworkContext) : DataFrame = {
