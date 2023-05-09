@@ -159,6 +159,7 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
     val templateName = badge.getOrElse("criteria", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]].getOrElse("narrative", "").asInstanceOf[String]
 
     val dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    val issuedDate = row.get(1).asInstanceOf[Map[String, AnyRef]].getOrElse("issuedOn", dateFormatter.format(row.get(5))).asInstanceOf[String]
     val related = row.get(2).asInstanceOf[Map[String, String]]
 
     val templateData = row.get(3).asInstanceOf[Map[String, Map[String, AnyRef]]].filter(rec => rec._2.getOrElse("name", "").toString.equalsIgnoreCase(templateName)).head._2
@@ -168,7 +169,7 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
       return ""
     }
     val eData = Map[String, AnyRef] (
-      "issuedDate" -> dateFormatter.format(row.get(5)),
+      "issuedDate" -> issuedDate,
       "data" -> List(Map[String, AnyRef]("recipientName" -> recipientName, "recipientId" -> recipientId)),
       "criteria" -> Map[String, String]("narrative" -> templateName),
       "svgTemplate" -> templateUrl,
