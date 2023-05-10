@@ -78,4 +78,3 @@ class HttpUtil extends Serializable {
     HTTPResponse(response.getStatus, response.getBody)
   }
 }
-

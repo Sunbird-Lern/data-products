@@ -16,6 +16,7 @@ import java.io.File
 import java.nio.file.Paths
 
 object DataSecurityUtil {
+  val httpUtil = new HttpUtil
 
   /**
    * fetch the job security level by calling tenant preference read API using orgId
@@ -30,8 +31,8 @@ object DataSecurityUtil {
     val headers: Map[String, String] = Map("Content-Type" -> "application/json",
     "x-authenticated-user-token" -> Constants.KEYCLOAK_ACCESS_TOKEN,
     "Authorization" -> Constants.KONG_API_KEY)
-    val httpUtil = new HttpUtil
-    val httpResponse = httpUtil.post(Constants.USER_ORG_BASE_URL + Constants.TENANT_PREFERENCE_URL, request, headers)
+    val readTenantPrefURL = Constants.USER_ORG_BASE_URL + Constants.TENANT_PREFERENCE_URL
+    val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
     if (httpResponse.status == 200) {
       JobLogger.log(s"dataSecurityPolicy for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
       val responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponse.body)
@@ -57,7 +58,6 @@ object DataSecurityUtil {
       case "L2" =>
         zipAndEncrypt(csvFile, storageConfig, request)
       case "L3" =>
-        val httpUtil = new HttpUtil
         //val downloadPath = Constants.TEMP_DIR + orgId
         val downloadPath = Constants.TEMP_DIR + orgId
         val publicPemFile = httpUtil.downloadFile(encryptionKey, downloadPath)
@@ -66,7 +66,6 @@ object DataSecurityUtil {
         val exhaustEncryptionKey = getExhaustEncryptionKey(orgId, channel)
         //        val exhaustEncryptionKey = "https://sunbirddevbbpublic.blob.core.windows.net/sunbird-content-dev/organisation/0137774123743232000/public.pem"
         // Download the exhaustEncryptionKey
-        val httpUtil = new HttpUtil
         //val downloadPath = Constants.TEMP_DIR + orgId
         val downloadPath = Constants.TEMP_DIR + orgId
         val publicPemFile = httpUtil.downloadFile(exhaustEncryptionKey, downloadPath)

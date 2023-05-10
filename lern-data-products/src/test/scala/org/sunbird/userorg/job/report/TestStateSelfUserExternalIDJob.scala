@@ -1,15 +1,17 @@
 package org.sunbird.userorg.job.report
 
+
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
-import org.ekstep.analytics.framework.{FrameworkContext, JobConfig}
+import org.ekstep.analytics.framework.util.JSONUtils.serialize
+import org.ekstep.analytics.framework.util.{HadoopFileUtil}
+import org.ekstep.analytics.framework.{FrameworkContext}
+import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
-import org.sunbird.core.util.EmbeddedCassandra
+import org.sunbird.core.util.{EmbeddedCassandra, HTTPResponse}
 import org.sunbird.lms.job.report.{BaseReportSpec, BaseReportsJob}
-import org.sunbird.userorg.job.report.StateAdminReportJob.getChannelWithRootOrgId
 
-class TestStateSelfUserExternalIDJob extends BaseReportSpec with MockFactory {
+class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with MockFactory {
 
   implicit var spark: SparkSession = _
   var map: Map[String, String] = _
@@ -79,10 +81,29 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with MockFactory {
   "StateSelfUserExternalIDWithZip" should "execute with zip failed to generate" in {
     implicit val fc = new FrameworkContext()
     try {
+      val l3LevelRespponse = createHTTPResponse("L3")
+      import org.sunbird.core.util.HttpUtil
+        val httpMock = mock[HttpUtil]
+      (httpMock.post(_: String, _: String, _: Map[String, String])).expects(*, *, *).returning(l3LevelRespponse).anyNumberOfTimes()
       val reportDF = StateAdminReportJob.generateExternalIdReport()(spark, fc)
-      //StateAdminReportJob.generateSelfUserDeclaredZip(reportDF, JSONUtils.deserialize[JobConfig]("""{"model":"Test"}"""))
     } catch {
       case ex: Exception => assert(ex.getMessage === "Self-Declared user level zip generation failed with exit code 127");
     }
+  }
+
+  def createResponseBody(level: String) : String = {
+    val jobData = Map[String, AnyRef]("admin-user-reports" -> level)
+    val dataMap = Map[String, AnyRef]("level" -> "L1", "job" -> jobData)
+    val responseMap = Map[String, AnyRef]("data" -> dataMap)
+    val resultMap = Map[String, AnyRef]("response" -> responseMap)
+    val responseBodyMap = Map[String, AnyRef]("result" -> resultMap)
+    val responseBodyStr = serialize(responseBodyMap)
+    responseBodyStr
+  }
+
+  def createHTTPResponse(level: String) : HTTPResponse = {
+    val responseBody = createResponseBody(level)
+    val httpResponse = HTTPResponse(200, responseBody)
+    httpResponse
   }
 }

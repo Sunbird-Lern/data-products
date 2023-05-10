@@ -39,12 +39,12 @@ object EncryptFileUtil extends Serializable {
 
         try {
             val file = new File(csvFilePath)
-            val stream1 : FileOutputStream = new FileOutputStream(file)
+            val outputStream : FileOutputStream = new FileOutputStream(file)
             try {
-                stream1.write(encryptedUUIDBytes)
-                stream1.write(encryptedAESContent)
+                outputStream.write(encryptedUUIDBytes)
+                outputStream.write(encryptedAESContent)
             }
-            finally if (stream1 != null) stream1.close()
+            finally if (outputStream != null) outputStream.close()
         }
     }
 
