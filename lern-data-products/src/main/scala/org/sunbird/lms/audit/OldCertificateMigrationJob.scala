@@ -112,10 +112,14 @@ object OldCertificateMigrationJob extends IJob with BaseReportsJob {
   def fetchCourseBatchData(session: SparkSession, batchIds: List[String]): DataFrame = {
     var courseBatchDF = fetchData(session, courseBatchDBSettings, cassandraUrl, new StructType()).select("courseid", "batchid", "cert_templates")
     if (batchIds.nonEmpty) {
-      import session.sqlContext.implicits._
-      val batchIdDF = session.sparkContext.parallelize(batchIds).toDF("batchid")
-      courseBatchDF = courseBatchDF.join(batchIdDF, Seq("batchid"), "inner");
-      courseBatchDF
+      if (batchIds.head == "all") {
+        courseBatchDF
+      } else {
+        import session.sqlContext.implicits._
+        val batchIdDF = session.sparkContext.parallelize(batchIds).toDF("batchid")
+        courseBatchDF = courseBatchDF.join(batchIdDF, Seq("batchid"), "inner");
+        courseBatchDF
+      }
     } else {
       throw new Exception("BatchID is mandatory parameter")
     }
