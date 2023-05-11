@@ -39,8 +39,6 @@ object Constants {
     val USER_ORG_BASE_URL = AppConf.getConfig("service.user.org.url")
     val TENANT_PREFERENCE_URL = AppConf.getConfig("service.org.tenant.preferences.read.url")
     //val ORG_RRAD_URL = AppConf.getConfig("service.org.search.url")
-    val KEYCLOAK_ACCESS_TOKEN = AppConf.getConfig("service.keycloak.access.token")
-    val KONG_API_KEY = AppConf.getConfig("service.kong.api.key")
     val TEMP_DIR = AppConf.getConfig("spark_output_temp_dir")
 
     val HIERARCHY_STORE_KEY_SPACE_NAME = AppConf.getConfig("cassandra.hierarchy_store_prefix")+"hierarchy_store"

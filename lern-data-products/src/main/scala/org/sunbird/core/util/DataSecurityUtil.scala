@@ -28,9 +28,7 @@ object DataSecurityUtil {
   def getSecurityLevel(jobId: String, orgId: String): String = {
     val requestBody = Map("request" -> Map("orgId" -> orgId, "key" -> "dataSecurityPolicy"))
     val request = JSONUtils.serialize(requestBody)
-    val headers: Map[String, String] = Map("Content-Type" -> "application/json",
-    "x-authenticated-user-token" -> Constants.KEYCLOAK_ACCESS_TOKEN,
-    "Authorization" -> Constants.KONG_API_KEY)
+    val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val readTenantPrefURL = Constants.USER_ORG_BASE_URL + Constants.TENANT_PREFERENCE_URL
     val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
     if (httpResponse.status == 200) {
@@ -79,8 +77,7 @@ object DataSecurityUtil {
   def getExhaustEncryptionKey(orgId: String, channel: String): String = {
     val requestBody = Map("request" -> (if(!orgId.isEmpty) Map("organisationId" -> orgId) else Map("channel" -> channel, "isTenant" -> true)))
     val request = JSONUtils.serialize(requestBody)
-    val headers: Map[String, String] = Map("Content-Type" -> "application/json",
-      "Authorization" -> Constants.KONG_API_KEY)
+    val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val httpUtil = new HttpUtil
     val httpResponse = httpUtil.post(Constants.ORG_SEARCH_URL, request, headers)
     if (httpResponse.status == 200) {
