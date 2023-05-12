@@ -13,6 +13,7 @@ artifacts_container: "{{dp_vault_artifacts_container}}"
 report_azure_account_name: "{{sunbird_private_storage_account_name}}"
 report_azure_storage_secret: "{{sunbird_private_storage_account_key}}"
 
+sunbird_api_auth_token: "{{ core_vault_sunbird_api_auth_token }}"
 metadata2_redis_host: "{{ groups['redis'][0] }}"
 searchServiceAuthorizationToken: "{{ sunbird_api_auth_token }}"
 

@@ -126,7 +126,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       pResponse.getString("status") should be ("SUCCESS")
       pResponse.getString("err_message") should be ("")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
-      pResponse.getString("download_urls") should be (s"{reports/userinfo-exhaust/$requestId/batch-001_userinfo_${getDate()}.zip}")
+      pResponse.getString("download_urls") should be (s"{userinfo-exhaust/$requestId/batch-001_userinfo_${getDate()}.zip}")
       pResponse.getString("dt_file_created") should be (null)
       pResponse.getString("iteration") should be ("0")
     }
@@ -380,7 +380,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       pResponse.getString("status") should be ("SUCCESS")
       pResponse.getString("err_message") should be ("")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
-      pResponse.getString("download_urls") should be (s"{reports/userinfo-exhaust/$requestId/batch-001_userinfo_${getDate()}.zip}")
+      pResponse.getString("download_urls") should be (s"{userinfo-exhaust/$requestId/batch-001_userinfo_${getDate()}.zip}")
       pResponse.getString("dt_file_created") should be (null)
       pResponse.getString("iteration") should be ("0")
     }
@@ -453,7 +453,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       pResponse.getString("status") should be ("SUCCESS")
       pResponse.getString("err_message") should be ("")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
-      pResponse.getString("download_urls") should be (s"{reports/userinfo-exhaust/$requestId/batch-003_userinfo_${getDate()}.zip}")
+      pResponse.getString("download_urls") should be (s"{userinfo-exhaust/$requestId/batch-003_userinfo_${getDate()}.zip}")
       pResponse.getString("dt_file_created") should be (null)
       pResponse.getString("iteration") should be ("0")
     }
@@ -507,7 +507,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       pResponse.getString("status") should be ("SUCCESS")
       pResponse.getString("err_message") should be ("")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
-      pResponse.getString("download_urls") should be (s"{reports/userinfo-exhaust/$requestId/batch-006_userinfo_${getDate()}.zip}")
+      pResponse.getString("download_urls") should be (s"{userinfo-exhaust/$requestId/batch-006_userinfo_${getDate()}.zip}")
       pResponse.getString("dt_file_created") should be (null)
       pResponse.getString("iteration") should be ("0")
     }
