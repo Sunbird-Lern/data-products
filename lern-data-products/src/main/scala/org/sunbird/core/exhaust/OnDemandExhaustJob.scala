@@ -1,20 +1,15 @@
 package org.sunbird.core.exhaust
 
-import net.lingala.zip4j.ZipFile
-import net.lingala.zip4j.model.ZipParameters
-import net.lingala.zip4j.model.enums.EncryptionMethod
 import org.apache.commons.lang.StringUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
-import org.ekstep.analytics.framework.util.{CommonUtil, JobLogger}
+import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
-import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
+import org.sunbird.core.util.DataSecurityUtil.{getOrgDetails, getSecuredExhaustFile, getSecurityLevel}
 
-import java.io.File
-import java.nio.file.Paths
 import java.sql.{Connection, DriverManager, PreparedStatement, Timestamp}
 import java.util.Properties
 import java.util.concurrent.CompletableFuture
@@ -140,7 +135,12 @@ trait OnDemandExhaustJob {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
         try {
-          getSecuredExhaustFile(request.job_id, null, request.requested_channel, url, null, storageConfig, request)
+          val organisation = getOrgDetails(null, request.requested_channel)
+          val orgId = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+            .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+            .getOrElse("id", "").asInstanceOf[String]
+          val level = getSecurityLevel(request.job_id, orgId)
+          getSecuredExhaustFile(level, null, request.requested_channel, url, null, storageConfig, request)
           url.replace(".csv", ".zip")
         } catch {
           case ex: Exception => ex.printStackTrace();

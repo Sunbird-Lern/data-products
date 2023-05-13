@@ -2,7 +2,6 @@ package org.sunbird.lms.exhaust.collection
 
 import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -20,16 +19,11 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
-import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
-import org.sunbird.core.util.EncryptFileUtil.encryptionFile
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
-import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.Seq
-import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 
 

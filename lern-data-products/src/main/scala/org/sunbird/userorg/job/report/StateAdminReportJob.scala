@@ -11,7 +11,7 @@ import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
 import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
-import org.sunbird.core.util.DataSecurityUtil.getSecuredExhaustFile
+import org.sunbird.core.util.DataSecurityUtil.{getSecuredExhaustFile, getSecurityLevel}
 import org.ekstep.analytics.framework.util.CommonUtil
 
 import java.io.File
@@ -97,8 +97,9 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       channelRootIdMap.foreach(pair => {
-        getSecuredExhaustFile("user-admin-reports", pair._2, null, objectKey+pair._1+".csv", null, storageConfig, null)(sparkSession.sparkContext.hadoopConfiguration, fc)
-        generateSelfUserDeclaredZip(pair._1+".csv")(sparkSession.sparkContext.hadoopConfiguration, fc)
+        val level = getSecurityLevel("user-admin-reports", "pair._2")
+        getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig, null)(sparkSession.sparkContext.hadoopConfiguration, fc)
+        //generateSelfUserDeclaredZip(pair._1+".csv")(sparkSession.sparkContext.hadoopConfiguration, fc)
       })
       JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
       resultDf
@@ -152,6 +153,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
       if (!storageConfig.store.equals("local")) {
         storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None);
       }
+      //delete csv file
+      //move to util file
     }
     
     private def decryptDF(emailMap: collection.Map[String, String], phoneMap: collection.Map[String, String]) (implicit sparkSession: SparkSession, fc: FrameworkContext) : DataFrame = {
