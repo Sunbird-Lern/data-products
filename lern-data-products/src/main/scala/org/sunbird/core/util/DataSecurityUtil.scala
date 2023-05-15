@@ -71,10 +71,11 @@ object DataSecurityUtil {
 
   def getExhaustEncryptionKey(orgId: String, channel: String): String = {
       val responseBody = getOrgDetails(orgId, channel)
-      val keys = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      val contentLst = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
         .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-        .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]].head
-        .getOrElse("keys", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+        .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]]
+      val content = if(contentLst.nonEmpty) contentLst.head else Map[String, AnyRef]()
+      val keys = content.getOrElse("keys", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
       val exhaustEncryptionKey = keys.getOrElse("exhaustEncryptionKey", List()).asInstanceOf[List[String]]
       if (exhaustEncryptionKey.nonEmpty) exhaustEncryptionKey.head else ""
   }
