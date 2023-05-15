@@ -136,10 +136,11 @@ trait OnDemandExhaustJob {
       if (zipEnabled())
         try {
           val organisation = getOrgDetails(null, request.requested_channel)
-          val orgId = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+          val contentLst = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
             .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-            .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]].head
-            .getOrElse("id", "").asInstanceOf[String]
+            .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]]
+          val content = if(contentLst.nonEmpty) contentLst.head else Map[String, AnyRef]()
+          val orgId = content.getOrElse("id", "").asInstanceOf[String]
           val level = getSecurityLevel(request.job_id, orgId)
           getSecuredExhaustFile(level, null, request.requested_channel, url, null, storageConfig, request)
           url.replace(".csv", ".zip")
