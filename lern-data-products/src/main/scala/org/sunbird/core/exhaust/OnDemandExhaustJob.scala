@@ -135,7 +135,7 @@ trait OnDemandExhaustJob {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
         try {
-          val organisation = getOrgDetails(null, request.requested_channel)
+          val organisation = getOrgDetails("", request.requested_channel)
           val contentLst = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
             .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
             .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]]
