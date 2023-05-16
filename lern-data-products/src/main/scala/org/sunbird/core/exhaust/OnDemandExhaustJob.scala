@@ -6,9 +6,9 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
-import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
+import org.ekstep.analytics.framework.util.{CommonUtil, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
-import org.sunbird.core.util.DataSecurityUtil.{getOrgDetails, getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
+import org.sunbird.core.util.DataSecurityUtil.{zipAndPasswordProtect}
 
 import java.sql.{Connection, DriverManager, PreparedStatement, Timestamp}
 import java.util.Properties
@@ -17,8 +17,9 @@ import java.util.function.Supplier
 
 case class JobRequest(tag: String, request_id: String, job_id: String, var status: String, request_data: String, requested_by: String, requested_channel: String,
                       dt_job_submitted: Long, var download_urls: Option[List[String]], var dt_file_created: Option[Long], var dt_job_completed: Option[Long],
-                      var execution_time: Option[Long], var err_message: Option[String], var iteration: Option[Int], encryption_key: Option[String], var processed_batches : Option[String] = None, var orgId :Option[String], var level: Option[String]) {
-    def this() = this("", "", "", "", "", "", "", 0, None, None, None, None, None, None, None, None, None, None)
+                      var execution_time: Option[Long], var err_message: Option[String], var iteration: Option[Int], encryption_key: Option[String], var processed_batches : Option[String] = None) {
+
+    def this() = this("", "", "", "", "", "", "", 0, None, None, None, None, None, None, None, None)
 }
 case class RequestStatus(channel: String, batchLimit: Long, fileLimit: Long)
 
@@ -110,16 +111,19 @@ trait OnDemandExhaustJob {
 
   }
 
-  def saveRequests(storageConfig: StorageConfig, requests: Array[JobRequest])(implicit conf: Configuration, fc: FrameworkContext) = {
-    val zippedRequests = for (request <- requests) yield processRequestEncryption(storageConfig, request)
+  def saveRequests(storageConfig: StorageConfig, requests: Array[JobRequest], reqOrgAndLevelDtl: List[(String, String, String)])(implicit conf: Configuration, fc: FrameworkContext) = {
+    val zippedRequests = for (request <- requests) yield {
+      val reqOrgAndLevel = reqOrgAndLevelDtl.filter(_._1 == request.request_id).head
+      processRequestEncryption(storageConfig, request, reqOrgAndLevel)
+    }
     updateRequests(zippedRequests)
   }
 
-  def saveRequestAsync(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): CompletableFuture[JobRequest] = {
+  def saveRequestAsync(storageConfig: StorageConfig, request: JobRequest, reqOrgAndLevel: (String, String, String))(implicit conf: Configuration, fc: FrameworkContext): CompletableFuture[JobRequest] = {
 
     CompletableFuture.supplyAsync(new Supplier[JobRequest]() {
       override def get() : JobRequest =  {
-        val res = CommonUtil.time(saveRequest(storageConfig, request))
+        val res = CommonUtil.time(saveRequest(storageConfig, request, reqOrgAndLevel))
         JobLogger.log("Request is zipped", Some(Map("requestId" -> request.request_id, "timeTakenForZip" -> res._1)), INFO)
         request
       }
@@ -127,15 +131,15 @@ trait OnDemandExhaustJob {
 
   }
 
-  def saveRequest(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): Boolean = {
-    updateRequest(processRequestEncryption(storageConfig, request))
+  def saveRequest(storageConfig: StorageConfig, request: JobRequest, reqOrgAndLevel: (String, String, String))(implicit conf: Configuration, fc: FrameworkContext): Boolean = {
+    updateRequest(processRequestEncryption(storageConfig, request, reqOrgAndLevel))
   }
 
-  def processRequestEncryption(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): JobRequest = {
+  def processRequestEncryption(storageConfig: StorageConfig, request: JobRequest, reqOrgAndLevel: (String, String, String))(implicit conf: Configuration, fc: FrameworkContext): JobRequest = {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
         try {
-          zipAndPasswordProtect(url, storageConfig, request, null, request.level.getOrElse(""))
+          zipAndPasswordProtect(url, storageConfig, request, null, reqOrgAndLevel._3)
           url.replace(".csv", ".zip")
         } catch {
           case ex: Exception => ex.printStackTrace();

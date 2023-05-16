@@ -100,7 +100,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val level = getSecurityLevel("user-admin-reports", "pair._2")
         getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig)
         zipAndPasswordProtect("", storageConfig, null, objectKey+"declared_user_detail/"+pair._1+".csv", level)(sparkSession.sparkContext.hadoopConfiguration, fc)
-        //generateSelfUserDeclaredZip(pair._1+".csv")(sparkSession.sparkContext.hadoopConfiguration, fc)
       })
       JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
       resultDf

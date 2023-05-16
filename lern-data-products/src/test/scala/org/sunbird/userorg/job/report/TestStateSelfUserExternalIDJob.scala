@@ -81,7 +81,7 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with M
   "StateSelfUserExternalIDWithZip" should "execute with zip failed to generate" in {
     implicit val fc = new FrameworkContext()
     try {
-      val l3LevelRespponse = createHTTPResponse("L3")
+      val l3LevelRespponse = createHTTPResponse("TEXT_KEY_ENCRYPTED_DATASET")
       import org.sunbird.core.util.HttpUtil
         val httpMock = mock[HttpUtil]
       (httpMock.post(_: String, _: String, _: Map[String, String])).expects(*, *, *).returning(l3LevelRespponse).anyNumberOfTimes()
@@ -93,7 +93,7 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with M
 
   def createResponseBody(level: String) : String = {
     val jobData = Map[String, AnyRef]("admin-user-reports" -> level)
-    val dataMap = Map[String, AnyRef]("level" -> "L1", "job" -> jobData)
+    val dataMap = Map[String, AnyRef]("level" -> "PLAIN_DATASET", "job" -> jobData)
     val responseMap = Map[String, AnyRef]("data" -> dataMap)
     val resultMap = Map[String, AnyRef]("response" -> responseMap)
     val responseBodyMap = Map[String, AnyRef]("result" -> resultMap)
