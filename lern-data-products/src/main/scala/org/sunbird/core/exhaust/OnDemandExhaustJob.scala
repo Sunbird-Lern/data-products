@@ -113,8 +113,8 @@ trait OnDemandExhaustJob {
 
   def saveRequests(storageConfig: StorageConfig, requests: Array[JobRequest], reqOrgAndLevelDtl: List[(String, String, String)])(implicit conf: Configuration, fc: FrameworkContext) = {
     val zippedRequests = for (request <- requests) yield {
-      val reqOrgAndLevel = reqOrgAndLevelDtl.filter(_._1 == request.request_id).head
-      processRequestEncryption(storageConfig, request, reqOrgAndLevel)
+      val reqOrgAndLevel = reqOrgAndLevelDtl.filter(_._1 == request.request_id).headOption
+      processRequestEncryption(storageConfig, request, reqOrgAndLevel.getOrElse("", "", ""))
     }
     updateRequests(zippedRequests)
   }
