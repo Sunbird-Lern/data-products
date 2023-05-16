@@ -8,7 +8,7 @@ import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
-import org.sunbird.core.util.DataSecurityUtil.{getOrgDetails, getSecuredExhaustFile, getSecurityLevel}
+import org.sunbird.core.util.DataSecurityUtil.{getOrgDetails, getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
 
 import java.sql.{Connection, DriverManager, PreparedStatement, Timestamp}
 import java.util.Properties
@@ -17,8 +17,8 @@ import java.util.function.Supplier
 
 case class JobRequest(tag: String, request_id: String, job_id: String, var status: String, request_data: String, requested_by: String, requested_channel: String,
                       dt_job_submitted: Long, var download_urls: Option[List[String]], var dt_file_created: Option[Long], var dt_job_completed: Option[Long],
-                      var execution_time: Option[Long], var err_message: Option[String], var iteration: Option[Int], encryption_key: Option[String], var processed_batches : Option[String] = None) {
-    def this() = this("", "", "", "", "", "", "", 0, None, None, None, None, None, None, None, None)
+                      var execution_time: Option[Long], var err_message: Option[String], var iteration: Option[Int], encryption_key: Option[String], var processed_batches : Option[String] = None, var orgId :Option[String], var level: Option[String]) {
+    def this() = this("", "", "", "", "", "", "", 0, None, None, None, None, None, None, None, None, None, None)
 }
 case class RequestStatus(channel: String, batchLimit: Long, fileLimit: Long)
 
@@ -135,14 +135,7 @@ trait OnDemandExhaustJob {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
         try {
-          val organisation = getOrgDetails("", request.requested_channel)
-          val contentLst = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-            .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-            .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]]
-          val content = if(contentLst.nonEmpty) contentLst.head else Map[String, AnyRef]()
-          val orgId = content.getOrElse("id", "").asInstanceOf[String]
-          val level = getSecurityLevel(request.job_id, orgId)
-          getSecuredExhaustFile(level, null, request.requested_channel, url, null, storageConfig, request)
+          zipAndPasswordProtect(url, storageConfig, request, null, request.level.getOrElse(""))
           url.replace(".csv", ".zip")
         } catch {
           case ex: Exception => ex.printStackTrace();

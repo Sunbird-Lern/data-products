@@ -48,21 +48,21 @@ object DataSecurityUtil {
     }
   }
 
-  def getSecuredExhaustFile(level: String, orgId: String, channel: String, csvFile: String, encryptionKey: String, storageConfig: StorageConfig, request: JobRequest) (implicit conf: Configuration, fc: FrameworkContext): Unit = {
+  def getSecuredExhaustFile(level: String, orgId: String, channel: String, csvFile: String, encryptedKey: String, storageConfig: StorageConfig): Unit = {
     level match {
       case "L1" =>
-        zipAndEncrypt("", storageConfig, request, csvFile, level)
+
       case "L2" =>
-        zipAndEncrypt(csvFile, storageConfig, request,"", level)
+
       case "L3" =>
-        val downloadPath = Constants.TEMP_DIR + orgId
-        val publicPemFile = httpUtil.downloadFile(encryptionKey, downloadPath)
-        encryptionFile(publicPemFile, csvFile)
+        //call decryptutil to decrypt aes-key(encryptionKey)
+        val keyForEncryption = DecryptUtil.decryptData(encryptedKey)
+        encryptionFile(null, csvFile, keyForEncryption)
       case "L4" =>
         val exhaustEncryptionKey = getExhaustEncryptionKey(orgId, channel)
         val downloadPath = Constants.TEMP_DIR + orgId
         val publicPemFile = httpUtil.downloadFile(exhaustEncryptionKey, downloadPath)
-        encryptionFile(publicPemFile, csvFile)
+        encryptionFile(publicPemFile, csvFile, "")
       case _ =>
         csvFile
 
@@ -80,6 +80,16 @@ object DataSecurityUtil {
       if (exhaustEncryptionKey.nonEmpty) exhaustEncryptionKey.head else ""
   }
 
+  def getOrgId(orgId: String, channel: String): String = {
+    val organisation = getOrgDetails("", channel)
+    val contentLst = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]]
+    val content = if(contentLst.nonEmpty) contentLst.head else Map[String, AnyRef]()
+    val orgId = content.getOrElse("id", "").asInstanceOf[String]
+    orgId
+  }
+
   def getOrgDetails(orgId: String, channel: String): Map[String, AnyRef] = {
     val requestBody = Map("request" -> (if(!orgId.isBlank) Map("id" -> orgId) else Map("channel" -> channel, "isTenant" -> true)))
     val request = JSONUtils.serialize(requestBody)
@@ -95,7 +105,7 @@ object DataSecurityUtil {
   }
 
   @throws(classOf[Exception])
-  private def zipAndEncrypt(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): Unit = {
+   def zipAndPasswordProtect(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): Unit = {
 
     val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
     val filePrefix = storageConfig.store.toLowerCase() match {
@@ -139,11 +149,13 @@ object DataSecurityUtil {
     val zipObjectKey = objKey.replace("csv", "zip")
     if (level == "L2") {
       val zipLocalObjKey = url.replace("csv", "zip")
+
       request.encryption_key.map(key => {
+        val keyForEncryption = DecryptUtil.decryptData(key)
         val zipParameters = new ZipParameters();
         zipParameters.setEncryptFiles(true);
         zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD); // AES encryption is not supported by default with various OS.
-        val zipFile = new ZipFile(zipPath, key.toCharArray());
+        val zipFile = new ZipFile(zipPath, keyForEncryption.toCharArray());
         zipFile.addFile(localPath, zipParameters)
       }).getOrElse({
         new ZipFile(zipPath).addFile(new File(localPath));
