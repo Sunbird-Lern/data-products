@@ -55,14 +55,13 @@ object DataSecurityUtil {
       case "L2" =>
 
       case "L3" =>
-        //call decryptutil to decrypt aes-key(encryptionKey)
         val keyForEncryption = DecryptUtil.decryptData(encryptedKey)
-        encryptionFile(null, csvFile, keyForEncryption)
+        encryptionFile(null, csvFile, keyForEncryption, level)
       case "L4" =>
         val exhaustEncryptionKey = getExhaustEncryptionKey(orgId, channel)
         val downloadPath = Constants.TEMP_DIR + orgId
         val publicPemFile = httpUtil.downloadFile(exhaustEncryptionKey, downloadPath)
-        encryptionFile(publicPemFile, csvFile, "")
+        encryptionFile(publicPemFile, csvFile, "", level)
       case _ =>
         csvFile
 
