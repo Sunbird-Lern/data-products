@@ -12,7 +12,7 @@ class TestEncryptFileUtil extends BaseSpec {
     val request = Map("popularity" -> 1);
     try {
       val file = new File("src/test/resources/reports/public.pem")
-      EncryptFileUtil.encryptionFile(file ,"src/test/resources/reports/ap.csv","","L1")
+      EncryptFileUtil.encryptionFile(file ,"src/test/resources/reports/ap.csv","","PLAIN_DATASET")
     } catch {
       case ex: UnirestException => Console.println(s"Invalid Request for url: ${url}. The job failed with: " + ex.getMessage)
     }

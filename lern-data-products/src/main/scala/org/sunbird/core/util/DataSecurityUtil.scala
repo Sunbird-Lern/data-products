@@ -50,14 +50,14 @@ object DataSecurityUtil {
 
   def getSecuredExhaustFile(level: String, orgId: String, channel: String, csvFile: String, encryptedKey: String, storageConfig: StorageConfig): Unit = {
     level match {
-      case "L1" =>
+      case "PLAIN_DATASET" =>
 
-      case "L2" =>
+      case "PASSWORD_PROTECTED_DATASET" =>
 
-      case "L3" =>
+      case "TEXT_KEY_ENCRYPTED_DATASET" =>
         val keyForEncryption = DecryptUtil.decryptData(encryptedKey)
         encryptionFile(null, csvFile, keyForEncryption, level)
-      case "L4" =>
+      case "PUBLIC_KEY_ENCRYPTED_DATASET" =>
         val exhaustEncryptionKey = getExhaustEncryptionKey(orgId, channel)
         val downloadPath = Constants.TEMP_DIR + orgId
         val publicPemFile = httpUtil.downloadFile(exhaustEncryptionKey, downloadPath)
@@ -123,7 +123,7 @@ object DataSecurityUtil {
     var localPath = ""
     var tempDir = ""
     var resultFile = ""
-    if(level == "L2") {
+    if(level == "PASSWORD_PROTECTED_DATASET") {
       tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
       val path = Paths.get(url);
       objKey = url.replace(filePrefix, "");
@@ -146,7 +146,7 @@ object DataSecurityUtil {
     // $COVERAGE-ON$
     val zipPath = localPath.replace("csv", "zip")
     val zipObjectKey = objKey.replace("csv", "zip")
-    if (level == "L2") {
+    if (level == "PASSWORD_PROTECTED_DATASET") {
       val zipLocalObjKey = url.replace("csv", "zip")
 
       request.encryption_key.map(key => {
