@@ -97,7 +97,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       channelRootIdMap.foreach(pair => {
-        val level = getSecurityLevel("user-admin-reports", "pair._2")
+        val level = getSecurityLevel("admin-user-reports", pair._2)
         getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig)
         zipAndPasswordProtect("", storageConfig, null, objectKey+"declared_user_detail/"+pair._1+".csv", level)(sparkSession.sparkContext.hadoopConfiguration, fc)
       })
