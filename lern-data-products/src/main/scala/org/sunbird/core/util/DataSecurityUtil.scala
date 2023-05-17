@@ -26,10 +26,11 @@ object DataSecurityUtil {
    * @return
    */
   def getSecurityLevel(jobId: String, orgId: String): String = {
+    JobLogger.log(s"getSecurityLevel jobID:: $jobId orgid:: $orgId", None, INFO)(new String())
     val requestBody = Map("request" -> Map("orgId" -> orgId, "key" -> "dataSecurityPolicy"))
     val request = JSONUtils.serialize(requestBody)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
-    val readTenantPrefURL = Constants.USER_ORG_BASE_URL + Constants.TENANT_PREFERENCE_URL
+    val readTenantPrefURL = Constants.TENANT_PREFERENCE_PRIVATE_READ_URL
     val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
     if (httpResponse.status == 200) {
       JobLogger.log(s"dataSecurityPolicy for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
@@ -43,7 +44,7 @@ object DataSecurityUtil {
       val jobLevel = jobDetail.getOrElse("level", "").asInstanceOf[String]
       if (!StringUtils.isEmpty(jobLevel)) jobLevel else globalLevel
     } else {
-      JobLogger.log(s"Error response from createUserFeed API for request :: $requestBody :: response is :: ${httpResponse.status} ::  ${httpResponse.body}", None, ERROR)(new String())
+      JobLogger.log(s"Error response from Tenant Preferance read API for request :: $requestBody :: response is :: ${httpResponse.status} ::  ${httpResponse.body}", None, ERROR)(new String())
       ""
     }
   }
@@ -94,7 +95,7 @@ object DataSecurityUtil {
     val request = JSONUtils.serialize(requestBody)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val httpUtil = new HttpUtil
-    val httpResponse = httpUtil.post(Constants.ORG_SEARCH_URL, request, headers)
+    val httpResponse = httpUtil.post(Constants.ORG_PRIVATE_SEARCH_URL, request, headers)
     var responseBody = Map[String, AnyRef]().empty
     if (httpResponse.status == 200) {
       JobLogger.log(s"getOrgDetail for org=$orgId and channel=$channel, response body=${httpResponse.body}", None, INFO)(new String())

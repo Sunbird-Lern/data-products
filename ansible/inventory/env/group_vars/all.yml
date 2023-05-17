@@ -101,3 +101,6 @@ s3_path_style_access: false
 s3_https_only: false
 s3_default_bucket_location: ""
 s3_storage_container: ""
+
+orgSearchServicePrivateEndpoint: "{{ proto}}://{{domain_name}}/private/v2/org/search"
+tenantPreferanceReadPrivateServiceEndpoint: "{{ proto}}://{{domain_name}}/private/v2/org/preferences/read"
