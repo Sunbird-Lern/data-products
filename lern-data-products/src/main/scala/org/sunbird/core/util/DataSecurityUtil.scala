@@ -123,23 +123,23 @@ object DataSecurityUtil {
       var localPath = ""
       var tempDir = ""
       var resultFile = ""
-      if (level == "PASSWORD_PROTECTED_DATASET") {
+      if (!url.isEmpty) {
         tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
-        val path = Paths.get(url);
-        objKey = url.replace(filePrefix, "");
-        localPath = tempDir + path.getFileName;
-        fc.getHadoopFileUtil().delete(conf, tempDir);
+        val path = Paths.get(url)
+        objKey = url.replace(filePrefix, "")
+        localPath = tempDir + path.getFileName
+        fc.getHadoopFileUtil().delete(conf, tempDir)
         if (storageConfig.store.equals("local")) {
           fc.getHadoopFileUtil().copy(filePrefix, localPath, conf)
         }
         // $COVERAGE-OFF$ Disabling scoverage
         else {
-          storageService.download(storageConfig.container, objKey, tempDir, Some(false));
+          storageService.download(storageConfig.container, objKey, tempDir, Some(false))
         }
       } else {
         //filePath = "declared_user_detail/"
-        localPath = filename;
-        objKey = localPath.replace(filePrefix, "");
+        localPath = filename
+        objKey = localPath.replace(filePrefix, "")
 
       }
 
@@ -151,30 +151,30 @@ object DataSecurityUtil {
 
         request.encryption_key.map(key => {
           val keyForEncryption = DecryptUtil.decryptData(key)
-          val zipParameters = new ZipParameters();
-          zipParameters.setEncryptFiles(true);
-          zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD); // AES encryption is not supported by default with various OS.
-          val zipFile = new ZipFile(zipPath, keyForEncryption.toCharArray());
+          val zipParameters = new ZipParameters()
+          zipParameters.setEncryptFiles(true)
+          zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD) // AES encryption is not supported by default with various OS.
+          val zipFile = new ZipFile(zipPath, keyForEncryption.toCharArray())
           zipFile.addFile(localPath, zipParameters)
         }).getOrElse({
-          new ZipFile(zipPath).addFile(new File(localPath));
+          new ZipFile(zipPath).addFile(new File(localPath))
         })
         resultFile = if (storageConfig.store.equals("local")) {
           fc.getHadoopFileUtil().copy(zipPath, zipLocalObjKey, conf)
         }
         // $COVERAGE-OFF$ Disabling scoverage
         else {
-          storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None);
+          storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None)
         }
         // $COVERAGE-ON$
-        fc.getHadoopFileUtil().delete(conf, tempDir);
-        resultFile;
+        fc.getHadoopFileUtil().delete(conf, tempDir)
+        resultFile
       } else {
-        new ZipFile(zipPath).addFile(new File(localPath));
+        new ZipFile(zipPath).addFile(new File(localPath))
         if (!storageConfig.store.equals("local")) {
           resultFile = storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None)
         }
-        fc.getHadoopFileUtil().delete(conf, localPath);
+        fc.getHadoopFileUtil().delete(conf, localPath)
         resultFile
       }
     }

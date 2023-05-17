@@ -21,7 +21,7 @@ object EncryptFileUtil extends Serializable {
         val pemReader = new PemReader(new java.io.StringReader(new String(publicKeyBytes)))
         val pemObject = pemReader.readPemObject()
 
-        val password = generateUniqueId
+        val uuid = generateUniqueId
         import java.security.KeyFactory
         import java.security.spec.X509EncodedKeySpec
         var encryptedUUIDBytes: Array[Byte] = Array[Byte]()
@@ -33,23 +33,22 @@ object EncryptFileUtil extends Serializable {
             val publicKey = keyFactory.generatePublic(publicKeySpec)
             val encryptRSACipher: Cipher = Cipher.getInstance(RSA_ALGORITHM)
             encryptRSACipher.init(Cipher.ENCRYPT_MODE, publicKey)
-            encryptedUUIDBytes = encryptRSACipher.doFinal(password.toString.getBytes("UTF-8"))
+            encryptedUUIDBytes = encryptRSACipher.doFinal(uuid.toString.getBytes("UTF-8"))
         } else {
-            val publicKey = new SecretKeySpec(keyForEncryption.getBytes, AES_ALGORITHM)
-            encryptAESCipher.init(Cipher.ENCRYPT_MODE, publicKey)
-            encryptedUUIDBytes = encryptAESCipher.doFinal(password.toString.getBytes("UTF-8"))
+            val userKey = new SecretKeySpec(keyForEncryption.getBytes, AES_ALGORITHM)
+            encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
+            encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
         }
-        val key = generateAESKey(password)
+        val key = generateAESKey(uuid)
         val fileBytes = Files.readAllBytes(Paths.get(csvFilePath))
         encryptAESCipher.init(Cipher.ENCRYPT_MODE, key)
         val encryptedAESContent = encryptAESCipher.doFinal(fileBytes)
-        val levelAESContent = encryptAESCipher.doFinal(level.getBytes)
 
         try {
             val file = new File(csvFilePath)
             val outputStream : FileOutputStream = new FileOutputStream(file)
             try {
-                outputStream.write(levelAESContent)
+                outputStream.write(level.getBytes)
                 outputStream.write(encryptedUUIDBytes)
                 outputStream.write(encryptedAESContent)
             }
@@ -66,7 +65,7 @@ object EncryptFileUtil extends Serializable {
           .putLong(uuid.getLeastSignificantBits)
           .array()
         val secureRandom = new SecureRandom(uuidBytes)
-        keyGenerator.init(128, secureRandom)
+        keyGenerator.init(256, secureRandom)
         new SecretKeySpec(uuidBytes, "AES")
     }
 }
