@@ -31,6 +31,7 @@ object DataSecurityUtil {
     val request = JSONUtils.serialize(requestBody)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val readTenantPrefURL = Constants.TENANT_PREFERENCE_PRIVATE_READ_URL
+    JobLogger.log(s"getSecurityLevel readTenantPrefURL:: $readTenantPrefURL", None, INFO)(new String())
     val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
     if (httpResponse.status == 200) {
       JobLogger.log(s"dataSecurityPolicy for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
