@@ -32,7 +32,7 @@ object EncryptFileUtil extends Serializable {
         val encryptAESCipher : Cipher = Cipher.getInstance(AES_ALGORITHM)
         if(!"".equals(keyForEncryption))
         {
-            val userKey = new SecretKeySpec(keyForEncryption.getBytes, AES_ALGORITHM)
+            val userKey = new SecretKeySpec(keyForEncryption.getBytes, "AES")
             encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
             encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
         } else {
