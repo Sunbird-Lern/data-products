@@ -163,7 +163,7 @@ object DataSecurityUtil {
 
   @throws(classOf[Exception])
   def downloadCsv(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): (String, String, String) = {
-    JobLogger.log(s"zipAndPasswordProtect for url=$url and filename=$filename, level=$level", None, INFO)(new String())
+    JobLogger.log(s"downloadCsv for url=$url and filename=$filename, level=$level", None, INFO)(new String())
     var objKey = ""
     var localPath = ""
     var tempDir = ""
@@ -207,7 +207,7 @@ object DataSecurityUtil {
 
   @throws(classOf[Exception])
   def csvPaths(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): (String, String, String) = {
-    JobLogger.log(s"zipAndPasswordProtect for url=$url and filename=$filename, level=$level", None, INFO)(new String())
+    JobLogger.log(s"csvPaths for url=$url and filename=$filename, level=$level", None, INFO)(new String())
     var objKey = ""
     var localPath = ""
     var tempDir = ""

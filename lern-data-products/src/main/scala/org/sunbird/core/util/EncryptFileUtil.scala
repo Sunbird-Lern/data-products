@@ -30,8 +30,12 @@ object EncryptFileUtil extends Serializable {
         import java.security.spec.X509EncodedKeySpec
         var encryptedUUIDBytes: Array[Byte] = Array[Byte]()
         val encryptAESCipher : Cipher = Cipher.getInstance(AES_ALGORITHM)
-        if(!keyForEncryption.isBlank)
+        if(!"".equals(keyForEncryption))
         {
+            val userKey = new SecretKeySpec(keyForEncryption.getBytes, AES_ALGORITHM)
+            encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
+            encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
+        } else {
             val publicKeyBytes = Files.readAllBytes(publicKeyFile.toPath)
             val pemReader = new PemReader(new java.io.StringReader(new String(publicKeyBytes)))
             val pemObject = pemReader.readPemObject()
@@ -41,10 +45,6 @@ object EncryptFileUtil extends Serializable {
             val encryptRSACipher: Cipher = Cipher.getInstance(RSA_ALGORITHM)
             encryptRSACipher.init(Cipher.ENCRYPT_MODE, publicKey)
             encryptedUUIDBytes = encryptRSACipher.doFinal(uuid.toString.getBytes("UTF-8"))
-        } else {
-            val userKey = new SecretKeySpec(keyForEncryption.getBytes, AES_ALGORITHM)
-            encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
-            encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
         }
         val key = generateAESKey(uuid)
         val fileBytes = Files.readAllBytes(Paths.get(csvFilePath))
