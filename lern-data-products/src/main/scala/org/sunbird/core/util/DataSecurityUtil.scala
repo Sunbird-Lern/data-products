@@ -93,7 +93,8 @@ object DataSecurityUtil {
   }
 
   def getOrgDetails(orgId: String, channel: String): Map[String, AnyRef] = {
-    val requestBody = Map("request" -> (if(!"".equals(orgId)) Map("id" -> orgId) else Map("channel" -> channel, "isTenant" -> true)))
+    val requestMap = Map("filters" ->  (if(!"".equals(orgId)) Map("id" -> orgId) else Map("channel" -> channel, "isTenant" -> true)))
+    val requestBody = Map("request" -> requestMap)
     val request = JSONUtils.serialize(requestBody)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val httpUtil = new HttpUtil
