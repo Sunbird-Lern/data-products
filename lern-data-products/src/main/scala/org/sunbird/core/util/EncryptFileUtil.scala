@@ -32,7 +32,8 @@ object EncryptFileUtil extends Serializable {
         val encryptAESCipher : Cipher = Cipher.getInstance(AES_ALGORITHM)
         if(!"".equals(keyForEncryption))
         {
-            val userKey = new SecretKeySpec(keyForEncryption.getBytes, "AES")
+            //val userKey = new SecretKeySpec(keyForEncryption.getBytes, "AES")
+            val userKey = generateAESKey(keyForEncryption.getBytes)
             encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
             encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
         } else {
@@ -46,7 +47,11 @@ object EncryptFileUtil extends Serializable {
             encryptRSACipher.init(Cipher.ENCRYPT_MODE, publicKey)
             encryptedUUIDBytes = encryptRSACipher.doFinal(uuid.toString.getBytes("UTF-8"))
         }
-        val key = generateAESKey(uuid)
+        val uuidBytes = ByteBuffer.wrap(new Array[Byte](16))
+          .putLong(uuid.getMostSignificantBits)
+          .putLong(uuid.getLeastSignificantBits)
+          .array()
+        val key = generateAESKey(uuidBytes)
         val fileBytes = Files.readAllBytes(Paths.get(csvFilePath))
         encryptAESCipher.init(Cipher.ENCRYPT_MODE, key)
         val encryptedAESContent = encryptAESCipher.doFinal(fileBytes)
@@ -65,12 +70,8 @@ object EncryptFileUtil extends Serializable {
 
     def generateUniqueId: UUID = UUID.randomUUID
 
-    def generateAESKey(uuid: UUID): SecretKeySpec = {
+    def generateAESKey(uuidBytes: Array[Byte]): SecretKeySpec = {
         val keyGenerator = KeyGenerator.getInstance("AES")
-        val uuidBytes = ByteBuffer.wrap(new Array[Byte](16))
-          .putLong(uuid.getMostSignificantBits)
-          .putLong(uuid.getLeastSignificantBits)
-          .array()
         val secureRandom = new SecureRandom(uuidBytes)
         keyGenerator.init(256, secureRandom)
         new SecretKeySpec(uuidBytes, "AES")
