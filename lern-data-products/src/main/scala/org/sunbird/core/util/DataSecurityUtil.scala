@@ -5,9 +5,10 @@ import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.model.enums.EncryptionMethod
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.SparkSession
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
-import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
+import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, StorageConfig}
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.EncryptFileUtil.encryptionFile
@@ -50,7 +51,7 @@ object DataSecurityUtil {
     }
   }
 
-  def getSecuredExhaustFile(level: String, orgId: String, channel: String, csvFile: String, encryptedKey: String, storageConfig: StorageConfig): Unit = {
+  def getSecuredExhaustFile(level: String, orgId: String, channel: String, csvFile: String, encryptedKey: String, storageConfig: StorageConfig, jobRequest: JobRequest) (implicit spark: SparkSession, fc: FrameworkContext): Unit = {
     JobLogger.log(s"getSecuredExhaustFile level:: $level", None, INFO)(new String())
     level match {
       case "PLAIN_DATASET" =>
@@ -59,12 +60,12 @@ object DataSecurityUtil {
 
       case "TEXT_KEY_ENCRYPTED_DATASET" =>
         val keyForEncryption = DecryptUtil.decryptData(encryptedKey)
-        encryptionFile(null, csvFile, keyForEncryption, level)
+        encryptionFile(null, csvFile, keyForEncryption, level, storageConfig, jobRequest)
       case "PUBLIC_KEY_ENCRYPTED_DATASET" =>
         val exhaustEncryptionKey = getExhaustEncryptionKey(orgId, channel)
         val downloadPath = Constants.TEMP_DIR + orgId
         val publicPemFile = httpUtil.downloadFile(exhaustEncryptionKey, downloadPath)
-        encryptionFile(publicPemFile, csvFile, "", level)
+        encryptionFile(publicPemFile, csvFile, "", level, storageConfig, jobRequest)
       case _ =>
         csvFile
 
@@ -110,6 +111,62 @@ object DataSecurityUtil {
   @throws(classOf[Exception])
    def zipAndPasswordProtect(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): Unit = {
     JobLogger.log(s"zipAndPasswordProtect for url=$url and filename=$filename, level=$level", None, INFO)(new String())
+    var resultFile = ""
+    if (level.nonEmpty) {
+      val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
+      var pathTuple : (String, String, String) =  ("","","")
+      if (level == "PASSWORD_PROTECTED_DATASET") {
+        pathTuple = downloadCsv(url, storageConfig, request, "", level)
+      } else {
+        pathTuple = csvPaths(url, storageConfig, request, "", level)
+      }
+      val localPath = pathTuple._1
+      val objKey = pathTuple._2
+      val tempDir = pathTuple._3
+      JobLogger.log(s"zipAndPasswordProtect tuple values localPath=$localPath and objKey=$objKey, tempDir=$tempDir", None, INFO)(new String())
+      // $COVERAGE-ON$
+      val zipPath = pathTuple._1.replace("csv", "zip")
+      val zipObjectKey = pathTuple._2.replace("csv", "zip")
+      if (level == "PASSWORD_PROTECTED_DATASET") {
+        val zipLocalObjKey = url.replace("csv", "zip")
+
+        request.encryption_key.map(key => {
+          val keyForEncryption = DecryptUtil.decryptData(key)
+          val zipParameters = new ZipParameters()
+          zipParameters.setEncryptFiles(true)
+          zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD) // AES encryption is not supported by default with various OS.
+          val zipFile = new ZipFile(zipPath, keyForEncryption.toCharArray())
+          zipFile.addFile(pathTuple._1, zipParameters)
+        }).getOrElse({
+          new ZipFile(zipPath).addFile(new File(pathTuple._1))
+        })
+        resultFile = if (storageConfig.store.equals("local")) {
+          fc.getHadoopFileUtil().copy(zipPath, zipLocalObjKey, conf)
+        }
+        // $COVERAGE-OFF$ Disabling scoverage
+        else {
+          storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None)
+        }
+        // $COVERAGE-ON$
+        fc.getHadoopFileUtil().delete(conf, pathTuple._3)
+        resultFile
+      } else {
+        new ZipFile(zipPath).addFile(new File(pathTuple._1))
+        if (!storageConfig.store.equals("local")) {
+          resultFile = storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None)
+        }
+        fc.getHadoopFileUtil().delete(conf, pathTuple._1)
+        resultFile
+      }
+    }
+  }
+
+  @throws(classOf[Exception])
+  def downloadCsv(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): (String, String, String) = {
+    JobLogger.log(s"zipAndPasswordProtect for url=$url and filename=$filename, level=$level", None, INFO)(new String())
+    var objKey = ""
+    var localPath = ""
+    var tempDir = ""
     if (level.nonEmpty) {
       val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
       val filePrefix = storageConfig.store.toLowerCase() match {
@@ -124,10 +181,7 @@ object DataSecurityUtil {
         case _ =>
           storageConfig.fileName
       }
-      var objKey = ""
-      var localPath = ""
-      var tempDir = ""
-      var resultFile = ""
+
       if (!url.isEmpty) {
         tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
         val path = Paths.get(url)
@@ -147,41 +201,51 @@ object DataSecurityUtil {
         objKey = localPath.replace(filePrefix, "")
 
       }
+    }
+    (localPath, objKey, tempDir)
+  }
 
-      // $COVERAGE-ON$
-      val zipPath = localPath.replace("csv", "zip")
-      val zipObjectKey = objKey.replace("csv", "zip")
-      if (level == "PASSWORD_PROTECTED_DATASET") {
-        val zipLocalObjKey = url.replace("csv", "zip")
+  @throws(classOf[Exception])
+  def csvPaths(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): (String, String, String) = {
+    JobLogger.log(s"zipAndPasswordProtect for url=$url and filename=$filename, level=$level", None, INFO)(new String())
+    var objKey = ""
+    var localPath = ""
+    var tempDir = ""
+    if (level.nonEmpty) {
+      val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
+      val filePrefix = storageConfig.store.toLowerCase() match {
+        // $COVERAGE-OFF$ Disabling scoverage
+        case "s3" =>
+          CommonUtil.getS3File(storageConfig.container, "")
+        case "azure" =>
+          CommonUtil.getAzureFile(storageConfig.container, "", storageConfig.accountKey.getOrElse("azure_storage_key"))
+        case "gcloud" =>
+          CommonUtil.getGCloudFile(storageConfig.container, "")
+        // $COVERAGE-ON$ for case: local
+        case _ =>
+          storageConfig.fileName
+      }
 
-        request.encryption_key.map(key => {
-          val keyForEncryption = DecryptUtil.decryptData(key)
-          val zipParameters = new ZipParameters()
-          zipParameters.setEncryptFiles(true)
-          zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD) // AES encryption is not supported by default with various OS.
-          val zipFile = new ZipFile(zipPath, keyForEncryption.toCharArray())
-          zipFile.addFile(localPath, zipParameters)
-        }).getOrElse({
-          new ZipFile(zipPath).addFile(new File(localPath))
-        })
-        resultFile = if (storageConfig.store.equals("local")) {
-          fc.getHadoopFileUtil().copy(zipPath, zipLocalObjKey, conf)
+      if (!url.isEmpty) {
+        tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
+        val path = Paths.get(url)
+        objKey = url.replace(filePrefix, "")
+        localPath = tempDir + path.getFileName
+        //fc.getHadoopFileUtil().delete(conf, tempDir)
+        /*if (storageConfig.store.equals("local")) {
+          fc.getHadoopFileUtil().copy(filePrefix, localPath, conf)
         }
         // $COVERAGE-OFF$ Disabling scoverage
         else {
-          storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None)
-        }
-        // $COVERAGE-ON$
-        fc.getHadoopFileUtil().delete(conf, tempDir)
-        resultFile
+          storageService.download(storageConfig.container, objKey, tempDir, Some(false))
+        }*/
       } else {
-        new ZipFile(zipPath).addFile(new File(localPath))
-        if (!storageConfig.store.equals("local")) {
-          resultFile = storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None)
-        }
-        fc.getHadoopFileUtil().delete(conf, localPath)
-        resultFile
+        //filePath = "declared_user_detail/"
+        localPath = filename
+        objKey = localPath.replace(filePrefix, "")
+
       }
     }
+    (localPath, objKey, tempDir)
   }
 }

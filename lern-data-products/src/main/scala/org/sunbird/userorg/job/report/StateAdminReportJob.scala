@@ -99,7 +99,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
       JobLogger.log(s"Self-Declared user objectKey:$objectKey", None, INFO)
       channelRootIdMap.foreach(pair => {
         val level = getSecurityLevel("admin-user-reports", pair._2)
-        getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig)
+        getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig, null)(sparkSession, fc)
         zipAndPasswordProtect("", storageConfig, null, objectKey+"declared_user_detail/"+pair._1+".csv", level)(sparkSession.sparkContext.hadoopConfiguration, fc)
       })
       JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)

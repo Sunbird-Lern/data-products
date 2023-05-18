@@ -126,7 +126,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val searchFilter = modelParams.get("searchFilter").asInstanceOf[Option[Map[String, AnyRef]]];
     val collectionBatches = getCollectionBatches(batchId, batchFilter, searchFilter, custodianOrgId, "System");
     val storageConfig = getStorageConfig(config, AppConf.getConfig("collection.exhaust.store.prefix"))
-    val result: List[CollectionBatchResponse] = processBatches(userCachedDF, collectionBatches._2, storageConfig, None, None, List.empty, null, null, null);
+    val result: List[CollectionBatchResponse] = processBatches(userCachedDF, collectionBatches._2, storageConfig, None, None, List.empty, null, null, null, null);
     result.foreach(f => JobLogger.log("Batch Status", Some(Map("status" -> f.status, "batchId" -> f.batchId, "executionTime" -> f.execTime, "message" -> f.statusMsg, "location" -> f.file)), INFO));
     Metrics(totalRequests = Some(result.length), failedRequests = Some(result.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(result.count(x => x.status.toUpperCase() == "SUCCESS")), duplicateRequests = Some(0))
   }
@@ -229,7 +229,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       val collectionBatchesData = collectionBatches._2.filter(p=> !completedBatchIds.contains(p.batchId))
       //SB-26292: The request should fail if the course is retired with err_message: The request is made for retired collection
       if(collectionBatches._2.size > 0) {
-        val result = CommonUtil.time(processBatches(userCachedDF, collectionBatchesData, storageConfig, Some(request.request_id), Some(request.requested_channel), processedRequests.toList, level, orgId, request.encryption_key))
+        val result = CommonUtil.time(processBatches(userCachedDF, collectionBatchesData, storageConfig, Some(request.request_id), Some(request.requested_channel), processedRequests.toList, level, orgId, request.encryption_key, request))
         val response = result._2;
         val failedBatches = response.filter(p => p.status.equals("FAILED"))
         val processingBatches= response.filter(p => p.status.equals("PROCESSING"))
@@ -333,7 +333,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     }
   }
 
-  def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], level:String, orgId:String, encryptionKey:Option[String])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
+  def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], level:String, orgId:String, encryptionKey:Option[String], jobRequest: JobRequest)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
 
     var processedCount = if(processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if(processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
@@ -362,8 +362,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
             val filePath = getFilePath(batch.batchId, requestId.getOrElse(""))
             val files = reportDF.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
             JobLogger.log(s"processBatches filePath: $filePath", Some("filePath" -> filePath), INFO)
-            files.foreach(file => JobLogger.log(s"processBatches file: $file",  Some("file" -> file), INFO))
-            getSecuredExhaustFile(level, orgId, requestChannel.get, url, encryptionKey.getOrElse(""), storageConfig)
+            files.foreach(file => getSecuredExhaustFile(level, orgId, requestChannel.get, file, encryptionKey.getOrElse(""), storageConfig, jobRequest))
+            //getSecuredExhaustFile(level, orgId, requestChannel.get, url, encryptionKey.getOrElse(""), storageConfig)
 
             newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
             CollectionBatchResponse(batch.batchId, filePath + "." + fileFormat, "SUCCESS", "", res._1, newFileSize);

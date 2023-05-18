@@ -1,8 +1,14 @@
 package org.sunbird.core.util
 
+import org.apache.hadoop.conf.Configuration
+import org.apache.spark.sql.SparkSession
+
 import javax.crypto.{Cipher, KeyGenerator}
 import javax.crypto.spec.SecretKeySpec
 import org.bouncycastle.util.io.pem.PemReader
+import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, StorageConfig}
+import org.sunbird.core.exhaust.JobRequest
+import org.sunbird.core.util.DataSecurityUtil.downloadCsv
 
 import java.io.{File, FileOutputStream}
 import java.nio.ByteBuffer
@@ -15,11 +21,9 @@ object EncryptFileUtil extends Serializable {
     val AES_ALGORITHM = "AES/CBC/PKCS5Padding"
     val RSA_ALGORITHM = "RSA"
 
-    def encryptionFile(publicKeyFile: File, csvFilePath: String, keyForEncryption: String, level: String)  : Unit = {
-        val publicKeyBytes = Files.readAllBytes(publicKeyFile.toPath)
+    def encryptionFile(publicKeyFile: File, csvFilePath: String, keyForEncryption: String, level: String, storageConfig: StorageConfig, jobRequest: JobRequest)(implicit spark: SparkSession, fc: FrameworkContext)  : Unit = {
 
-        val pemReader = new PemReader(new java.io.StringReader(new String(publicKeyBytes)))
-        val pemObject = pemReader.readPemObject()
+        downloadCsv(csvFilePath, storageConfig, jobRequest, "", level)(spark.sparkContext.hadoopConfiguration, fc)
 
         val uuid = generateUniqueId
         import java.security.KeyFactory
@@ -28,6 +32,9 @@ object EncryptFileUtil extends Serializable {
         val encryptAESCipher : Cipher = Cipher.getInstance(AES_ALGORITHM)
         if(!keyForEncryption.isBlank)
         {
+            val publicKeyBytes = Files.readAllBytes(publicKeyFile.toPath)
+            val pemReader = new PemReader(new java.io.StringReader(new String(publicKeyBytes)))
+            val pemObject = pemReader.readPemObject()
             val keyFactory = KeyFactory.getInstance(RSA_ALGORITHM)
             val publicKeySpec = new X509EncodedKeySpec(pemObject.getContent)
             val publicKey = keyFactory.generatePublic(publicKeySpec)
