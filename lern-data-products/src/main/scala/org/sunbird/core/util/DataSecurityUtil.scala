@@ -83,24 +83,24 @@ object DataSecurityUtil {
   }
 
   def getOrgId(orgId: String, channel: String): String = {
-    val organisation = getOrgDetails("", channel)
+    val organisation = getOrgDetails(orgId , channel)
     val contentLst = organisation.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
       .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
       .getOrElse("content", List[Map[String, AnyRef]]()).asInstanceOf[List[Map[String, AnyRef]]]
     val content = if(contentLst.nonEmpty) contentLst.head else Map[String, AnyRef]()
-    val orgId = content.getOrElse("id", "").asInstanceOf[String]
-    orgId
+    val organisationId = content.getOrElse("id", "").asInstanceOf[String]
+    organisationId
   }
 
   def getOrgDetails(orgId: String, channel: String): Map[String, AnyRef] = {
-    val requestBody = Map("request" -> (if(!orgId.isBlank) Map("id" -> orgId) else Map("channel" -> channel, "isTenant" -> true)))
+    val requestBody = Map("request" -> (if(!"".equals(orgId)) Map("id" -> orgId) else Map("channel" -> channel, "isTenant" -> true)))
     val request = JSONUtils.serialize(requestBody)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val httpUtil = new HttpUtil
     val httpResponse = httpUtil.post(Constants.ORG_PRIVATE_SEARCH_URL, request, headers)
     var responseBody = Map[String, AnyRef]().empty
     if (httpResponse.status == 200) {
-      JobLogger.log(s"getOrgDetail for org=$orgId and channel=$channel, response body=${httpResponse.body}", None, INFO)(new String())
+      JobLogger.log(s"getOrgDetail for org = $orgId and channel= $channel, response body = ${httpResponse.body}", None, INFO)(new String())
       responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponse.body)
     }
     responseBody

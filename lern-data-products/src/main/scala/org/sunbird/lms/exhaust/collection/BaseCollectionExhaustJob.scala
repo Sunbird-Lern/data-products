@@ -150,6 +150,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val result = for (request <- filteredRequests) yield {
       val orgId = getOrgId("", request.requested_channel)
       val level = getSecurityLevel(jobId(), orgId)
+      JobLogger.log(s"executeOnDemand for url = $orgId and level = $level", None, INFO)
       val reqOrgAndLevel = (request.request_id, orgId, level)
       reqOrgAndLevelDtl :+= reqOrgAndLevel
       val updRequest: JobRequest = {
