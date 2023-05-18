@@ -96,6 +96,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
+      JobLogger.log(s"Self-Declared user objectKey:$objectKey", None, INFO)
       channelRootIdMap.foreach(pair => {
         val level = getSecurityLevel("admin-user-reports", pair._2)
         getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig)
@@ -175,7 +176,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("userroororg").as("Root Org of user"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
-        resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
+      val files = resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
+      files.foreach(file => JobLogger.log(s"Self-Declared file path: "+file, None, INFO))
      resultDf
     }
 
