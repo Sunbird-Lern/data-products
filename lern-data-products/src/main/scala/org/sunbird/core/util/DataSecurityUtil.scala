@@ -51,6 +51,7 @@ object DataSecurityUtil {
   }
 
   def getSecuredExhaustFile(level: String, orgId: String, channel: String, csvFile: String, encryptedKey: String, storageConfig: StorageConfig): Unit = {
+    JobLogger.log(s"getSecuredExhaustFile level:: $level", None, INFO)(new String())
     level match {
       case "PLAIN_DATASET" =>
 
@@ -107,6 +108,7 @@ object DataSecurityUtil {
 
   @throws(classOf[Exception])
    def zipAndPasswordProtect(url: String, storageConfig: StorageConfig, request: JobRequest, filename: String, level: String)(implicit conf: Configuration, fc: FrameworkContext): Unit = {
+    JobLogger.log(s"zipAndPasswordProtect for url=$url and filename=$filename, level=$level", None, INFO)(new String())
     if (level.nonEmpty) {
       val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
       val filePrefix = storageConfig.store.toLowerCase() match {
