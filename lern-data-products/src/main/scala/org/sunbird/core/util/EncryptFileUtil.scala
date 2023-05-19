@@ -5,6 +5,8 @@ import org.apache.spark.sql.SparkSession
 import javax.crypto.{Cipher, SecretKeyFactory}
 import javax.crypto.spec.{PBEKeySpec, SecretKeySpec}
 import org.bouncycastle.util.io.pem.PemReader
+import org.ekstep.analytics.framework.Level.INFO
+import org.ekstep.analytics.framework.util.JobLogger
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
 import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.DataSecurityUtil.downloadCsv
@@ -22,7 +24,8 @@ object EncryptFileUtil extends Serializable {
 
     def encryptionFile(publicKeyFile: File, csvFilePath: String, keyForEncryption: String, level: String, storageConfig: StorageConfig, jobRequest: JobRequest)(implicit spark: SparkSession, fc: FrameworkContext)  : Unit = {
 
-        downloadCsv(csvFilePath, storageConfig, jobRequest, "", level)(spark.sparkContext.hadoopConfiguration, fc)
+        val pathTuple = downloadCsv(csvFilePath, storageConfig, jobRequest, "", level)(spark.sparkContext.hadoopConfiguration, fc)
+        JobLogger.log(s"encryptionFile tuple values localPath= $pathTuple._1 and objKey= $pathTuple._2, tempDir= $pathTuple._3", None, INFO)(new String())
 
         val uuid = generateUniqueId
         import java.security.KeyFactory
@@ -51,12 +54,12 @@ object EncryptFileUtil extends Serializable {
           .putLong(uuid.getLeastSignificantBits)
           .array()).toCharArray
         val key = generateAESKey(uuidBytes)
-        val fileBytes = Files.readAllBytes(Paths.get(csvFilePath))
+        val fileBytes = Files.readAllBytes(Paths.get(pathTuple._1))
         encryptAESCipher.init(Cipher.ENCRYPT_MODE, key)
         val encryptedAESContent = encryptAESCipher.doFinal(fileBytes)
 
         try {
-            val file = new File(csvFilePath)
+            val file = new File(pathTuple._1)
             val outputStream : FileOutputStream = new FileOutputStream(file)
             try {
                 outputStream.write(level.getBytes)
