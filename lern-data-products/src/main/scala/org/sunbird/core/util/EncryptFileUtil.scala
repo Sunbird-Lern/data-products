@@ -1,12 +1,11 @@
 package org.sunbird.core.util
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.SparkSession
 
-import javax.crypto.{Cipher, KeyGenerator}
-import javax.crypto.spec.SecretKeySpec
+import javax.crypto.{Cipher, SecretKeyFactory}
+import javax.crypto.spec.{PBEKeySpec, SecretKeySpec}
 import org.bouncycastle.util.io.pem.PemReader
-import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, StorageConfig}
+import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
 import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.DataSecurityUtil.downloadCsv
 
@@ -33,7 +32,7 @@ object EncryptFileUtil extends Serializable {
         if(!"".equals(keyForEncryption))
         {
             //val userKey = new SecretKeySpec(keyForEncryption.getBytes, "AES")
-            val userKey = generateAESKey(keyForEncryption.getBytes)
+            val userKey = generateAESKey(keyForEncryption.toCharArray)
             encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
             encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
         } else {
@@ -47,10 +46,10 @@ object EncryptFileUtil extends Serializable {
             encryptRSACipher.init(Cipher.ENCRYPT_MODE, publicKey)
             encryptedUUIDBytes = encryptRSACipher.doFinal(uuid.toString.getBytes("UTF-8"))
         }
-        val uuidBytes = ByteBuffer.wrap(new Array[Byte](16))
+        val uuidBytes = new String(ByteBuffer.wrap(new Array[Byte](16))
           .putLong(uuid.getMostSignificantBits)
           .putLong(uuid.getLeastSignificantBits)
-          .array()
+          .array()).toCharArray
         val key = generateAESKey(uuidBytes)
         val fileBytes = Files.readAllBytes(Paths.get(csvFilePath))
         encryptAESCipher.init(Cipher.ENCRYPT_MODE, key)
@@ -70,10 +69,12 @@ object EncryptFileUtil extends Serializable {
 
     def generateUniqueId: UUID = UUID.randomUUID
 
-    def generateAESKey(uuidBytes: Array[Byte]): SecretKeySpec = {
-        val keyGenerator = KeyGenerator.getInstance("AES")
-        val secureRandom = new SecureRandom(uuidBytes)
-        keyGenerator.init(256, secureRandom)
-        new SecretKeySpec(uuidBytes, "AES")
+    def generateAESKey(uuidBytes: Array[Char]): SecretKeySpec = {
+        val salt = new Array[Byte](128)
+        val random = new SecureRandom()
+        random.nextBytes(salt)
+        val pbeKeySpec = new PBEKeySpec(uuidBytes, salt, 1000, 256)
+        val pbeKey = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(pbeKeySpec)
+        new SecretKeySpec(pbeKey.getEncoded, "AES")
     }
 }
