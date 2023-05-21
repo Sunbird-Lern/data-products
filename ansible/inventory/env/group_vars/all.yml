@@ -102,5 +102,5 @@ s3_https_only: false
 s3_default_bucket_location: ""
 s3_storage_container: ""
 
-orgSearchServicePrivateEndpoint: "{{sunbird_learner_service_url}}/private/v2/org/search"
-tenantPreferanceReadPrivateServiceEndpoint: "{{sunbird_learner_service_url}}/private/v2/org/preferences/read"
+org_search_service_private_endpoint: "{{sunbird_learner_service_url}}/private/v2/org/search"
+tenant_preferance_read_private_service_endpoint: "{{sunbird_learner_service_url}}/private/v2/org/preferences/read"
