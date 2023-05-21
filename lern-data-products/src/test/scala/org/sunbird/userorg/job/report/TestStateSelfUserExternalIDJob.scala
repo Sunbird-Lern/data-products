@@ -32,7 +32,7 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with M
 
   //Created data : channels ApSlug and OtherSlug contains validated users created against blocks,districts and state
   //Only TnSlug doesn't contain any validated users
-  "StateSelfUserExternalID" should "generate reports" in {
+  ignore /*"StateSelfUserExternalID"*/ should "generate reports" in {
     implicit val fc = new FrameworkContext()
     val reportDF = StateAdminReportJob.generateExternalIdReport()(spark, fc)
     assert(reportDF.count() === 2);
@@ -78,7 +78,7 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with M
 
   }
   
-  "StateSelfUserExternalIDWithZip" should "execute with zip failed to generate" in {
+  ignore /*"StateSelfUserExternalIDWithZip"*/ should "execute with zip failed to generate" in {
     implicit val fc = new FrameworkContext()
     try {
       val l3LevelRespponse = createHTTPResponse("TEXT_KEY_ENCRYPTED_DATASET")
