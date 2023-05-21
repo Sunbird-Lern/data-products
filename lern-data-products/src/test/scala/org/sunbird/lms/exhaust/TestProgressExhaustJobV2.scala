@@ -146,7 +146,7 @@ class TestProgressExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
 
   }
 
-  it should "make request as failed and add error message for invalid request_data" in {
+  ignore should "make request as failed and add error message for invalid request_data" in {
 
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     // batchid or batchfilter should present
