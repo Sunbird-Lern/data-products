@@ -73,7 +73,6 @@ azure_token_client_secret="{{ media_service_azure_token_client_secret }}"
 elasticsearch.service.endpoint="http://{{groups['composite-search-cluster'][0]}}:9200"
 elasticsearch.index.compositesearch.name="{{ es_search_index }}"
 
-org.search.api.url="{{ channelSearchServiceEndpoint }}"
 org.search.api.key="{{ searchServiceAuthorizationToken }}"
 
 hierarchy.search.api.url="{{ hierarchySearchServiceUrl }}"
@@ -311,3 +310,6 @@ sunbird.course.optionalnodes="optionalnodes"
 sunbird.course.redis.host={{ groups['redisall'][0] }}
 sunbird.course.redis.port=6379
 sunbird.course.redis.relationCache.id=5
+
+org.search.private.api.url="{{ org_search_service_private_endpoint }}"
+tenant.pref.read.private.api.url="{{ tenant_preferance_read_private_service_endpoint }}"

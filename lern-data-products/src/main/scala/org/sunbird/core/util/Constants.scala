@@ -33,9 +33,11 @@ object Constants {
     val LP_URL = AppConf.getConfig("lp.url")
     val SEARCH_SERVICE_URL = AppConf.getConfig("service.search.url")
     val COMPOSITE_SEARCH_URL = s"$SEARCH_SERVICE_URL" + AppConf.getConfig("service.search.path")
-    val ORG_SEARCH_URL: String = AppConf.getConfig("org.search.api.url") + AppConf.getConfig("org.search.api.path")
     val ORG_SEARCH_API_KEY: String = AppConf.getConfig("org.search.api.key")
     val USER_SEARCH_URL : String = AppConf.getConfig("user.search.api.url")
+    val TENANT_PREFERENCE_PRIVATE_READ_URL = AppConf.getConfig("tenant.pref.read.private.api.url")
+    val ORG_PRIVATE_SEARCH_URL: String = AppConf.getConfig("org.search.private.api.url")
+    val TEMP_DIR = AppConf.getConfig("spark_output_temp_dir")
 
     val HIERARCHY_STORE_KEY_SPACE_NAME = AppConf.getConfig("cassandra.hierarchy_store_prefix")+"hierarchy_store"
     val CONTENT_HIERARCHY_TABLE = "content_hierarchy"

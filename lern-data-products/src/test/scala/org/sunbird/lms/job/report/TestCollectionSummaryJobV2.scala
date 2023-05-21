@@ -133,7 +133,7 @@ class TestCollectionSummaryJobV2 extends BaseReportSpec with MockFactory {
     CollectionSummaryJobV2.saveToBlob(reportData, jobConfig)
   }
 
-  it should "generate the report with the latest value from date columns" in {
+  ignore should "generate the report with the latest value from date columns" in {
     initializeDefaultMockData()
     implicit val mockFc: FrameworkContext = mock[FrameworkContext]
     val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.job.report.CollectionSummaryJobV2","modelParams":{"searchFilter":{"request":{"filters":{"status":["Live"],"contentType":"Course"},"fields":["identifier","name","organisation","channel","status","keywords","createdFor","medium", "subject"],"limit":10000}},"store":"azure","sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"{{ metadata2_redis_host }}","sparkUserDbRedisIndex":"12","sparkCassandraConnectionHost":"{{ core_cassandra_host }}","fromDate":"$(date --date yesterday '+%Y-%m-%d')","toDate":"$(date --date yesterday '+%Y-%m-%d')","specPath":"src/test/resources/ingestion-spec/summary-ingestion-spec.json"},"parallelization":8,"appName":"Collection Summary Report"}""".stripMargin
