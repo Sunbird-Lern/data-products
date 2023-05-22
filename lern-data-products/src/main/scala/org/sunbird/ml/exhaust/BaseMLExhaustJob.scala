@@ -284,9 +284,9 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     getReportPath() + "/" + requestIdPath + getDate()
   }
 
-  def getDate(): String = {
-    val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyyMMdd").withZone(DateTimeZone.forOffsetHoursMinutes(5, 30));
-    dateFormat.print(System.currentTimeMillis());
-  }
+//  def getDate(): String = {
+//    val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyyMMdd").withZone(DateTimeZone.forOffsetHoursMinutes(5, 30));
+//    dateFormat.print(System.currentTimeMillis());
+//  }
 
 }
