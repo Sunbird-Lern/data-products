@@ -60,13 +60,17 @@ object EncryptFileUtil extends Serializable {
 
         try {
             val file = new File(pathTuple._1)
-            val outputStream : FileOutputStream = new FileOutputStream(file)
+            import java.io.BufferedWriter
+            import java.io.OutputStreamWriter
+            val bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"))
             try {
-                outputStream.write(level.getBytes)
-                outputStream.write(encryptedUUIDBytes)
-                outputStream.write(encryptedAESContent)
+                bufferedWriter.write(level)
+                bufferedWriter.newLine()
+                bufferedWriter.write(new String(encryptedUUIDBytes))
+                bufferedWriter.newLine()
+                bufferedWriter.write(new String(encryptedAESContent))
             }
-            finally if (outputStream != null) outputStream.close()
+            finally if (bufferedWriter != null) bufferedWriter.close()
         }
     }
 
