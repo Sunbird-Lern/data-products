@@ -61,7 +61,7 @@ object EncryptFileUtil extends Serializable {
         encryptAESCipher.init(Cipher.ENCRYPT_MODE, fileEncryptionKey, new IvParameterSpec(Array.fill[Byte](16)(0)))
         val encryptedAESContent = encryptAESCipher.doFinal(fileBytes)
         try {
-            val file = new File(csvFilePath)
+            val file = new File(pathTuple._1)
             val fileWriter = new FileOutputStream(file)
             try {
                 fileWriter.write((level + "\n").getBytes())
