@@ -10,7 +10,6 @@ import org.ekstep.analytics.framework.util.JobLogger
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
 import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.DataSecurityUtil.downloadCsv
-import org.sunbird.core.util.EncryptFileUtil2.{RSA_ALGORITHM, RSA_CBC_PKCS1, generateAESKey}
 
 import java.io.{File, FileOutputStream}
 import java.nio.ByteBuffer
@@ -22,6 +21,7 @@ object EncryptFileUtil extends Serializable {
 
     val AES_ALGORITHM = "AES/CBC/PKCS5Padding"
     val RSA_ALGORITHM = "RSA"
+    val RSA_CBC_PKCS1 = "RSA/ECB/PKCS1Padding"
 
     def encryptionFile(publicKeyFile: File, csvFilePath: String, keyForEncryption: String, level: String, storageConfig: StorageConfig, jobRequest: JobRequest)(implicit spark: SparkSession, fc: FrameworkContext)  : Unit = {
 
