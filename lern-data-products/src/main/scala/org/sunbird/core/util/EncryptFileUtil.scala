@@ -12,7 +12,6 @@ import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.DataSecurityUtil.downloadCsv
 
 import java.io.{File, FileOutputStream}
-import java.nio.ByteBuffer
 import java.nio.file.{Files, Paths}
 import java.security.SecureRandom
 import java.util.{Base64, UUID}
@@ -36,10 +35,10 @@ object EncryptFileUtil extends Serializable {
         var fileEncryptionKey: SecretKeySpec = null
         if(!"".equals(keyForEncryption))
         {
-            //val userKey = new SecretKeySpec(keyForEncryption.getBytes, "AES")
-            val userKey = generateAESKey(keyForEncryption.toCharArray)
-            encryptAESCipher.init(Cipher.ENCRYPT_MODE, userKey)
-            encryptedUUIDBytes = encryptAESCipher.doFinal(uuid.toString.getBytes("UTF-8"))
+          fileEncryptionKey = generateAESKey(uuid.toString.toCharArray)
+          val encryptAESCipher: Cipher = Cipher.getInstance(AES_ALGORITHM)
+          encryptAESCipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyForEncryption.getBytes(), "AES"), new IvParameterSpec(Array.fill[Byte](16)(0)))
+          encryptedUUIDBytes = encryptAESCipher.doFinal(fileEncryptionKey.getEncoded)
         } else {
             val publicKeyBytes = Files.readAllBytes(publicKeyFile.toPath)
             val pemReader = new PemReader(new java.io.StringReader(new String(publicKeyBytes)))
@@ -52,11 +51,6 @@ object EncryptFileUtil extends Serializable {
             encryptRSACipher.init(Cipher.ENCRYPT_MODE, publicKey)
             encryptedUUIDBytes = encryptRSACipher.doFinal(fileEncryptionKey.getEncoded)
         }
-//        val uuidBytes = new String(ByteBuffer.wrap(new Array[Byte](16))
-//          .putLong(uuid.getMostSignificantBits)
-//          .putLong(uuid.getLeastSignificantBits)
-//          .array()).toCharArray
-//        val key = generateAESKey(uuidBytes)
         val fileBytes = Files.readAllBytes(Paths.get(pathTuple._1))
         encryptAESCipher.init(Cipher.ENCRYPT_MODE, fileEncryptionKey, new IvParameterSpec(Array.fill[Byte](16)(0)))
         val encryptedAESContent = encryptAESCipher.doFinal(fileBytes)
