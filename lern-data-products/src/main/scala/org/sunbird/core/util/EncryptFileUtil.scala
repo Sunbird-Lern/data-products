@@ -33,11 +33,21 @@ object EncryptFileUtil extends Serializable {
         var encryptedUUIDBytes: Array[Byte] = Array[Byte]()
         val encryptAESCipher : Cipher = Cipher.getInstance(AES_ALGORITHM)
         var fileEncryptionKey: SecretKeySpec = null
+        var secretKey : Array[Byte] = Array[Byte]()
         if(!"".equals(keyForEncryption))
         {
+            val keyLength = keyForEncryption.getBytes().length
+            if(keyLength == 32) {
+                secretKey = keyForEncryption.getBytes()
+            } else if(keyLength < 32) {
+                val padArray = Array.fill[Byte](32-keyLength)(0)
+                secretKey = Array.concat(keyForEncryption.getBytes(), padArray)
+            } else {
+                secretKey = keyForEncryption.substring(keyLength-32, keyLength).getBytes()
+            }
           fileEncryptionKey = generateAESKey(uuid.toString.toCharArray)
           val encryptAESCipher: Cipher = Cipher.getInstance(AES_ALGORITHM)
-          encryptAESCipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyForEncryption.getBytes(), "AES"), new IvParameterSpec(Array.fill[Byte](16)(0)))
+          encryptAESCipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(secretKey, "AES"), new IvParameterSpec(Array.fill[Byte](16)(0)))
           encryptedUUIDBytes = encryptAESCipher.doFinal(fileEncryptionKey.getEncoded)
         } else {
             val publicKeyBytes = Files.readAllBytes(publicKeyFile.toPath)
