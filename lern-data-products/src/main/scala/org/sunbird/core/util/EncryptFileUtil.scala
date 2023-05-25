@@ -13,8 +13,9 @@ import org.sunbird.core.util.DataSecurityUtil.downloadCsv
 
 import java.io.{File, FileOutputStream}
 import java.nio.file.{Files, Paths}
-import java.security.SecureRandom
+import java.security.{MessageDigest, SecureRandom}
 import java.util.{Base64, UUID}
+import javax.xml.bind.DatatypeConverter
 
 object EncryptFileUtil extends Serializable {
 
@@ -36,15 +37,7 @@ object EncryptFileUtil extends Serializable {
         var secretKey : Array[Byte] = Array[Byte]()
         if(!"".equals(keyForEncryption))
         {
-            val keyLength = keyForEncryption.getBytes().length
-            if(keyLength == 32) {
-                secretKey = keyForEncryption.getBytes()
-            } else if(keyLength < 32) {
-                val padArray = Array.fill[Byte](32-keyLength)(0)
-                secretKey = Array.concat(keyForEncryption.getBytes(), padArray)
-            } else {
-                secretKey = keyForEncryption.substring(keyLength-32, keyLength).getBytes()
-            }
+            secretKey = generate32CharacterString(keyForEncryption).getBytes()
           fileEncryptionKey = generateAESKey(uuid.toString.toCharArray)
           val encryptAESCipher: Cipher = Cipher.getInstance(AES_ALGORITHM)
           encryptAESCipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(secretKey, "AES"), new IvParameterSpec(Array.fill[Byte](16)(0)))
@@ -85,5 +78,25 @@ object EncryptFileUtil extends Serializable {
         val pbeKeySpec = new PBEKeySpec(uuidBytes, salt, 1000, 256)
         val pbeKey = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(pbeKeySpec)
         new SecretKeySpec(pbeKey.getEncoded, "AES")
+    }
+
+    def generate32CharacterString(input: String): String = {
+        val md5: MessageDigest = MessageDigest.getInstance("MD5")
+
+        // Convert the input string to bytes
+        val inputBytes: Array[Byte] = input.getBytes("UTF-8")
+
+        // Update the MessageDigest with inputBytes
+        md5.update(inputBytes)
+
+        // Generate the MD5 hash
+        val digest: Array[Byte] = md5.digest()
+
+        // Convert the digest to a hexadecimal string
+        val hexString: String = DatatypeConverter.printHexBinary(digest)
+
+        // Take the first 32 characters of the hexadecimal string
+        val result: String = hexString.substring(0, 32)
+        result
     }
 }
