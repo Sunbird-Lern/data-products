@@ -12,9 +12,12 @@ import org.ekstep.analytics.framework.driver.BatchJobDriver.getMetricJson
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, StorageConfig}
+import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
+import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
+import org.sunbird.core.util.DataSecurityUtil.{getOrgId, getSecuredExhaustFile, getSecurityLevel}
 import org.sunbird.lms.exhaust.collection.{ProcessedRequest}
 
 import java.security.MessageDigest
@@ -84,8 +87,15 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     JobLogger.log("The Request count details", Some(Map("Total Requests" -> requests.length, "filtered Requests" -> filteredRequests.length, "Duplicate Requests" -> dupRequestsList.length)), INFO)
 
     val requestsCompleted: ListBuffer[ProcessedRequest] = ListBuffer.empty
+    var reqOrgAndLevelDtl : List[(String, String, String)] = List()
 
     val result = for (request <- filteredRequests) yield {
+      JobLogger.log(s"executeOnDemand for channel= " + request.requested_channel, None, INFO)
+      val orgId = request.requested_channel //getOrgId("", request.requested_channel)
+      val level = getSecurityLevel(jobId(), orgId)
+      JobLogger.log(s"executeOnDemand for url = $orgId and level = $level and channel= $request.requested_channel", None, INFO)
+      val reqOrgAndLevel = (request.request_id, orgId, level)
+      reqOrgAndLevelDtl :+= reqOrgAndLevel
       val updRequest: (JobRequest, StorageConfig) = {
         try {
           val processedCount = if (requestsCompleted.isEmpty) 0 else requestsCompleted.count(f => f.channel.equals(request.requested_channel))
@@ -94,7 +104,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
 
           if (validateRequest(request)) {
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
-            val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests)
+            val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
             finalRes
           } else {
             JobLogger.log("Not a Valid Request", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
@@ -115,16 +125,13 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
           val dupUpdReq = markDuplicateRequest(req, updRequest1)
           dupUpdReq
         }
-        saveRequests(storageConfig, res.toArray)(spark.sparkContext.hadoopConfiguration, fc)
+        saveRequests(storageConfig, res.toArray,reqOrgAndLevelDtl)(spark.sparkContext.hadoopConfiguration, fc)
       }
-      saveRequestAsync(updRequest._2, updRequest1)(spark.sparkContext.hadoopConfiguration, fc)
-      //      saveRequest(updRequest._2, updRequest1)(spark.sparkContext.hadoopConfiguration, fc)
+      saveRequestAsync(updRequest._2, updRequest1, reqOrgAndLevel)(spark.sparkContext.hadoopConfiguration, fc)
     }
     CompletableFuture.allOf(result: _*) // Wait for all the async tasks to complete
     val completedResult = result.map(f => f.join()); // Get the completed job requests
     Metrics(totalRequests = Some(requests.length), failedRequests = Some(completedResult.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(completedResult.count(x => x.status.toUpperCase == "SUCCESS")), duplicateRequests = Some(dupRequestsList.length))
-
-    //    Metrics(totalRequests = Some(5), failedRequests = Some(0), successRequests = Some(1), duplicateRequests = Some(2))
   }
 
   def validateRequest(request: JobRequest): Boolean = {
@@ -176,7 +183,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     updateStatus(request);
   }
 
-  def transformData(resultData: (Long, DataFrame), request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest], totalRequests: AtomicInteger)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): (JobRequest, StorageConfig) = {
+  def transformData(resultData: (Long, DataFrame), request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest], totalRequests: AtomicInteger, orgId: String, level: String)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): (JobRequest, StorageConfig) = {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
     val reportDF1 = resultData._2
     val transformedDataDF: DataFrame = if (reportDF1.count() > 0) {
@@ -207,7 +214,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     }
     if (transformedDataDF.count() > 0) {
       JobLogger.log("Saving Dataframe to File", None, INFO)
-      val result = CommonUtil.time(ProgramUserInfoExhaustJob.saveToFile(transformedDataDF, storageConfig, Some(request.request_id), Some(request.requested_channel), requestsCompleted.toList, resultData._1))
+      val result = CommonUtil.time(saveToFile(transformedDataDF, storageConfig, Some(request.request_id), Some(request.requested_channel), requestsCompleted.toList, resultData._1, level, orgId, request.encryption_key, request))
       val response = result._2;
       val failedPrograms = response.filter(p => p.status.equals("FAILED"))
       val processingPrograms = response.filter(p => p.status.equals("PROCESSING"))
@@ -236,7 +243,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       (request, storageConfig)
     }
   }
-  def saveToFile(reportDf: DataFrame, storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], execTimeTaken: Long)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[ProgramResponse] = {
+  def saveToFile(reportDf: DataFrame, storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], execTimeTaken: Long, level:String, orgId:String, encryptionKey:Option[String], jobRequest: JobRequest)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[ProgramResponse] = {
     var processedCount = if (processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if (processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
     var newFileSize: Long = 0
@@ -245,8 +252,13 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       val fileFormat = "csv"
       val filePath = getFilePath(requestId.getOrElse(""))
       val files = reportDf.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
+
+      JobLogger.log(s"processPrograms filePath: $filePath", Some("filePath" -> filePath), INFO)
+      files.foreach(file => getSecuredExhaustFile(level, orgId, requestChannel.get, file, encryptionKey.getOrElse(""), storageConfig, jobRequest))
+
       newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
       List(ProgramResponse(storageConfig.fileName + "/" + filePath + "." + fileFormat, "SUCCESS", "", execTimeTaken, newFileSize))
+
     } catch {
       case ex: Exception =>
         ex.printStackTrace();
@@ -270,7 +282,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     reportDF.toDF(colNames: _*).select(columnWithOrder.head, columnWithOrder.tail: _*).na.fill("")
   }
   def markDuplicateRequest(request: JobRequest, referenceRequest: JobRequest): JobRequest = {
-    request.status = referenceRequest.status;
+    request.status = referenceRequest.status
     request.download_urls = referenceRequest.download_urls
     request.execution_time = referenceRequest.execution_time
     request.dt_job_completed = referenceRequest.dt_job_completed
