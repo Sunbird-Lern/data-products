@@ -115,7 +115,7 @@ object DataSecurityUtil {
     if (level.nonEmpty) {
       val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
       var pathTuple : (String, String, String) =  ("","","")
-      if (level == "PASSWORD_PROTECTED_DATASET" || level == "PLAIN_TEXT") {
+      if (level == "PASSWORD_PROTECTED_DATASET" || level == "PLAIN_DATASET") {
         pathTuple = downloadCsv(url, storageConfig, request, "", level)
       } else {
         pathTuple = csvPaths(url, storageConfig, request, "", level)
