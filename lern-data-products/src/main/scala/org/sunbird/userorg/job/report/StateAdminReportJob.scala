@@ -11,7 +11,7 @@ import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
 import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
-import org.sunbird.core.util.DataSecurityUtil.{getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
+import org.sunbird.core.util.DataSecurityUtil.{downloadCsv, getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
 import org.ekstep.analytics.framework.util.CommonUtil
 
 import java.io.File
@@ -95,18 +95,11 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
-      val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
-      JobLogger.log(s"Self-Declared user objectKey:$objectKey", None, INFO)
-      channelRootIdMap.foreach(pair => {
-        val level = getSecurityLevel("admin-user-reports", pair._2)
-        getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig, null)(sparkSession, fc)
-        zipAndPasswordProtect("", storageConfig, null, objectKey+"declared_user_detail/"+pair._1+".csv", level)(sparkSession.sparkContext.hadoopConfiguration, fc)
-      })
-      JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
+
       resultDf
     }
 
-    def getChannelWithRootOrgId(userExternalDecryptData: DataFrame)(implicit sparkSession: SparkSession, fc: FrameworkContext) : scala.collection.Map[String, String] = {
+    def getChannelWithRootOrgId(userExternalDecryptData: DataFrame) : scala.collection.Map[String, String] = {
       val channelRootIdMap = userExternalDecryptData.rdd.map(r => (r.getAs[String]("channel"), r.getAs[String]("rootorgid"))).collectAsMap()
       channelRootIdMap
     }
@@ -145,7 +138,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         userDecrpytedDataDF
     }
     
-    private def saveUserSelfDeclaredExternalInfo(userExternalDecryptData: DataFrame, userDenormLocationDF: DataFrame): DataFrame ={
+    private def saveUserSelfDeclaredExternalInfo(userExternalDecryptData: DataFrame, userDenormLocationDF: DataFrame)(implicit sparkSession: SparkSession, fc: FrameworkContext): DataFrame ={
         var userDenormLocationDFWithCluster : DataFrame = null;
         if(!userDenormLocationDF.columns.contains("cluster")) {
             if(!userDenormLocationDF.columns.contains("block")) {
@@ -178,13 +171,16 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
           .filter(col("provider").isNotNull)
       val files = resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
       files.foreach(file => JobLogger.log(s"Self-Declared file path: "+file, None, INFO))
-     /* val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
+      val fileUrl = files(0)
+      val filePathWithoutCsv = fileUrl.substring(0,fileUrl.lastIndexOf("/")+1)
+      val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       JobLogger.log(s"Self-Declared user objectKey:$objectKey", None, INFO)
       channelRootIdMap.foreach(pair => {
         val level = getSecurityLevel("admin-user-reports", pair._2)
-        getSecuredExhaustFile(level, pair._2, null, objectKey+"declared_user_detail/"+pair._1+".csv", null, storageConfig)
-        zipAndPasswordProtect("", storageConfig, null, objectKey+"declared_user_detail/"+pair._1+".csv", level)(sparkSession.sparkContext.hadoopConfiguration, fc)
-      })*/
+        getSecuredExhaustFile(level, pair._2, null, filePathWithoutCsv+pair._1+".csv", null, storageConfig, null)
+        zipAndPasswordProtect(filePathWithoutCsv+pair._1+".csv", storageConfig, null, "", level)(sparkSession.sparkContext.hadoopConfiguration, fc)
+      })
+      JobLogger.log(s"Self-Declared user level zip generation::Success", None, INFO)
      resultDf
     }
 
