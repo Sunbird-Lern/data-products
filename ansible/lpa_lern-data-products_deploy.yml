@@ -5,7 +5,7 @@
   become: yes
   become_user: "{{ analytics_user }}"
   environment:
-    account_name: AKIA57YRBBPVDG6QI52N
-    storage_key: djDZqDYWehtx6wm6WqdZeDhUehKyLwrqrPQP3cL7
+    AWS_ACCESS_KEY_ID: AKIA57YRBBPVDG6QI52N
+    AWS_SECRET_ACCESS_KEY: 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
   roles:
    - lern-data-products-deploy
