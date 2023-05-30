@@ -5,7 +5,7 @@
   become: yes
   become_user: "{{ analytics_user }}"
   environment:
-    AWS_ACCESS_KEY_ID: "{{cloud_private_storage_accountname}}"
-    AWS_SECRET_ACCESS_KEY: "{{cloud_private_storage_secret}}"
+    AWS_ACCOUNT_NAME: "{{AKIA57YRBBPVDG6QI52N}}"
+    AWS_STORAGE_KEY: "{{djDZqDYWehtx6wm6WqdZeDhUehKyLwrqrPQP3cL7}}"
   roles:
    - lern-data-products-deploy
