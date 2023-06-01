@@ -92,6 +92,10 @@ mvn -Dsuites={{classname with package path}} test
 # mvn -Dsuites=org.sunbird.lms.exhaust.TestProgressExhaustJob test
 ```
 
+**Note**: While testcase execution, report files will be generated and verified and deleted immediately after the testcase is completed. Check for the file path from the  testcase for manual verification.
+<br>
+We suggest running the testcases in debug mode using IDE for debugging.
+
 For running the data-products testcase, we are using following data sources in embedded mode
 - cassandra
 - postgres
