@@ -60,9 +60,9 @@ mvn clean install -DskipTests
 
 ***Note***: The above dependency libraries has to be built from the respective release branch for the data-products.
 
-## Setup of data-products
+## Setup of data-products in local
 
-Each data-product is an independent spark job which used for generating reports and data migrations. Since that each data-product having different sets of data provider dependencies. Data-provider for each job is listed in the below reference link.
+Each data-product is an independent spark job which used for generating reports and data migrations. So each data-product having different sets of data provider dependencies. Data-provider for each job is listed in the below reference link.
 
 [Reference Link](https://project-sunbird.atlassian.net/wiki/spaces/UM/pages/3135471624/Migration+of+Data+Products+in+Sunbird-LERN#%F0%9F%A7%AE-Data-product-list)
 
@@ -77,6 +77,9 @@ git clone git@github.com:Sunbird-Lern/data-products.git
 # checkout to the respective release branch
 git checkout release-5.3.0
 
+# change the directory to project directory
+cd lern-data-products 
+
 # build the project
 mvn clean install -DskipTests
 ```
@@ -88,3 +91,22 @@ mvn -Dsuites={{classname with package path}} test
 # Example:
 # mvn -Dsuites=org.sunbird.lms.exhaust.TestProgressExhaustJob test
 ```
+
+For running the data-products testcase, we are using following data sources in embedded mode
+- cassandra
+- postgres
+- redis
+
+Data sources shema used in testcases are below
+<br>
+https://github.com/Sunbird-Lern/data-products/blob/release-5.3.0/lern-data-products/src/main/resources/data.cql
+<br>
+https://github.com/Sunbird-Lern/data-products/blob/release-5.3.0/lern-data-products/src/test/scala/org/sunbird/core/util/EmbeddedPostgres.scala
+
+And the API requests are mocked inside the testcase with mockwebserver library.
+
+## Run Data-products in server
+
+Data-products in server runs in spark-submit mode. Installation and execution guide can be found from the below link
+
+https://lern.sunbird.org/use/developer-installation/data-products
