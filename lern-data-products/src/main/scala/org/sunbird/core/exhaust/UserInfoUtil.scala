@@ -21,6 +21,10 @@ object UserInfoUtil extends BaseReportsJob {
     val schema = Encoders.product[UserData].schema
     println("userCacheDBSettings "+ userCacheDBSettings)
     println("redisFormat "+ redisFormat)
+    var df1 = loadData(userCacheDBSettings, redisFormat, schema)
+    println("dummy cache df start ----")
+    df1.show()
+    println("dummy cache df end ----")
     val df = loadData(userCacheDBSettings, redisFormat, schema).withColumn("username", concat_ws(" ", col("firstname"), col("lastname"))).select(cols.head, cols.tail: _*)
       .repartition(AppConf.getConfig("exhaust.user.parallelism").toInt, col("userid"))
     println("redis cache query output")

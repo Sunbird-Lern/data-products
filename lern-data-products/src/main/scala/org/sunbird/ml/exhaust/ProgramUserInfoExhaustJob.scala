@@ -196,6 +196,8 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
     println("User Consent Cassandra Table Filters "+ multUsrConsentFilter)
     val resUserConsent = CommonUtil.time({
       val userConsentDF = UserInfoUtil.getUserConsentDF(multUsrConsentFilter, persist = true)
+      println("user consent cassandra query output")
+      userConsentDF.show()
       (userConsentDF.count(), userConsentDF)
     })
     JobLogger.log("Time to fetch user consent details from cassandra table", Some(Map("timeTaken" -> resUserConsent._1, "count" -> resUserConsent._2._1)), INFO)
