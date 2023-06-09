@@ -115,7 +115,7 @@ object DataSecurityUtil {
     if (level.nonEmpty) {
       val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
       var pathTuple : (String, String, String) =  ("","","")
-      if (level == "PASSWORD_PROTECTED_DATASET") {
+      if (level == "PASSWORD_PROTECTED_DATASET" || level == "PLAIN_DATASET") {
         pathTuple = downloadCsv(url, storageConfig, request, "", level)
       } else {
         pathTuple = csvPaths(url, storageConfig, request, "", level)
@@ -182,8 +182,15 @@ object DataSecurityUtil {
           storageConfig.fileName
       }
 
-      if (!url.isEmpty) {
-        tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
+      if (!url.isEmpty ) {
+        if(request != null) {
+          tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
+        } else {
+          if (!storageConfig.store.equals("local")) {
+            val urlSplitArr = url.split("/")
+            tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(3) + "/"
+          }
+        }
         val path = Paths.get(url)
         objKey = url.replace(filePrefix, "")
         localPath = tempDir + path.getFileName
@@ -227,7 +234,14 @@ object DataSecurityUtil {
       }
 
       if (!url.isEmpty) {
-        tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
+        if(request != null) {
+          tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
+        } else {
+          if (!storageConfig.store.equals("local")) {
+            val urlSplitArr = url.split("/")
+            tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(3) + "/"
+          }
+        }
         val path = Paths.get(url)
         objKey = url.replace(filePrefix, "")
         localPath = tempDir + path.getFileName
