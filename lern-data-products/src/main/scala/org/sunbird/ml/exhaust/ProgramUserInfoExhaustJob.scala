@@ -39,6 +39,9 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
   override def processProgram(request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     markRequestAsProcessing(request)
 
+    println("request "+ request)
+    println("storage config "+ storageConfig)
+
     val requestBody = JSONUtils.deserialize[RequestBody](request.request_data)
     val requestParamsBody = requestBody.`params`
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
@@ -59,8 +62,13 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
       val pgmEnrollCols: List[String] = modelParamsPgmEnroll.getOrElse("columns", List[String]()).asInstanceOf[List[String]]
       val entitiesPgmEnrollCols: List[String] = modelParamsPgmEnroll.getOrElse("user_locations_columns", List[String]()).asInstanceOf[List[String]]
 
+      println("program enrollment cassandra filters "+ multiplePgmEnrollFilter)
+      println("program enrollment cassandra columns "+ pgmEnrollCols)
+      println("program enrollment cassandra entity columns "+ entitiesPgmEnrollCols)
       val resPgmEnrollDataDf = CommonUtil.time({
         val pgmEnrollDataDf = getProgramEnrolment(multiplePgmEnrollFilter, pgmEnrollCols, entitiesPgmEnrollCols, true)
+        println("program enrollment cassandra query output")
+        pgmEnrollDataDf.show()
         (pgmEnrollDataDf.count(), pgmEnrollDataDf)
       })
       JobLogger.log("Time to fetch program enrollment from cassandra", Some(Map("timeTaken" -> resPgmEnrollDataDf._1, "count" -> resPgmEnrollDataDf._2._1)), INFO)
@@ -134,6 +142,8 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
         noPIILabelMapping = noPIILabelMapping -- consentColNames
         val noPIIOrderColConfig1 = noPIIOrderColConfig.diff(noPIIOrderCol)
         val pgmEnrollLabelMapDF: DataFrame = organizeDF(pgmEnrolNoPIIDataDf, noPIILabelMapping, noPIIOrderColConfig1).na.fill("")
+        println("final dataframe")
+        pgmEnrollLabelMapDF.show()
         pgmEnrollLabelMapDF
       } else {
         JobLogger.log("Data Not Found for both PII Consent Required = false", Some(Map("requestId" -> request.request_id)), INFO)
@@ -151,8 +161,12 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
   def getProgramEnrolment(filters: String, cols: List[String], entityCol:List[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
     JobLogger.log("Program Enrollment Cassandra Table is being queried", None, INFO)
     import spark.implicits._
+    println("programEnrolmentDBSettings "+ programEnrolmentDBSettings)
+    println("cassandraFormat "+ cassandraFormat)
     var df = loadData(programEnrolmentDBSettings, cassandraFormat, new StructType())
       .where(s"""$filters""").select(cols.head, cols.tail: _*)
+    println("getProgramEnrolment function cassandra query output")
+    df.show()
     df = df.select($"*", explode($"user_locations")).drop("user_locations")
     val enrollCols: List[String] = cols.filter(_ != "user_locations")
     val columns = enrollCols ++ entityCol
@@ -179,6 +193,7 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
       }
     }
     JobLogger.log("User Consent Cassandra Table Filters", Some(multUsrConsentFilter), INFO)
+    println("User Consent Cassandra Table Filters "+ multUsrConsentFilter)
     val resUserConsent = CommonUtil.time({
       val userConsentDF = UserInfoUtil.getUserConsentDF(multUsrConsentFilter, persist = true)
       (userConsentDF.count(), userConsentDF)
