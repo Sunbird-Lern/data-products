@@ -41,6 +41,7 @@ object DataSecurityUtil {
     JobLogger.log(s"getSecurityLevel readTenantPrefURL:: $readTenantPrefURL", None, INFO)(new String())
     val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
     println("API Status code "+ httpResponse.status)
+    println("API Response Body "+ httpResponse.body)
     if (httpResponse.status == 200) {
       JobLogger.log(s"dataSecurityPolicy for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
       val responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponse.body)
