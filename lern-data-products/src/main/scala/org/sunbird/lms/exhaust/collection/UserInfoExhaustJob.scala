@@ -30,8 +30,8 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
     }
   }
 
-  private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone",
-    "consentflag", "consentprovideddate", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname");
+  /*private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone",
+    "consentflag", "consentprovideddate", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname");*/
 
   private val consentFields = List("email", "phone")
   private val orgDerivedFields = List("username")
@@ -42,7 +42,7 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
     "email" -> "Email ID", "phone" -> "Mobile Number", "consentflag" -> "Consent Provided", "consentprovideddate" -> "Consent Provided Date", "schooludisecode" -> "School Id", "schoolname" -> "School Name")
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
-
+    val filterColumns : List[String] = config.modelParams.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
     collectionBatch.userConsent.getOrElse("No").toLowerCase() match {
       case "yes" =>
         val unmaskedDF = decryptUserInfo(applyConsentRules(collectionBatch, userEnrolmentDF))

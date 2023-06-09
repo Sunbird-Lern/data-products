@@ -3,15 +3,15 @@ package org.sunbird.userorg.job.report
 import net.lingala.zip4j.ZipFile
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.functions.{col, lit, when, _}
-import org.apache.spark.sql.{DataFrame, _}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql._
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
 import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
-import org.sunbird.core.util.DataSecurityUtil.{downloadCsv, getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
+import org.sunbird.core.util.DataSecurityUtil.{getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
 import org.ekstep.analytics.framework.util.CommonUtil
 
 import java.io.File

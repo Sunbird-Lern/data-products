@@ -28,23 +28,55 @@ object DataSecurityUtil {
    */
   def getSecurityLevel(jobId: String, orgId: String): String = {
     JobLogger.log(s"getSecurityLevel jobID:: $jobId orgid:: $orgId", None, INFO)(new String())
-    val requestBody = Map("request" -> Map("orgId" -> orgId, "key" -> "dataSecurityPolicy"))
+    val httpResponseBody = getTenantPreferanceDetails(orgId, "dataSecurityPolicy")
+    val responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponseBody)
+    val data = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse("data", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+    val globalLevel = data.getOrElse("level", "").asInstanceOf[String]
+    val jobDetail = data.getOrElse("job", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse(jobId, Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+    val jobLevel = jobDetail.getOrElse("level", "").asInstanceOf[String]
+    if (!StringUtils.isEmpty(jobLevel)) jobLevel else globalLevel
+  }
+
+  /**
+   * fetch the PII fields by calling tenant preference read API using orgId
+   *
+   * @param jobId
+   * @param orgId
+   * @return
+   */
+  def getPIIFieldDetails(jobId: String, orgId: String): List[String] = {
+    JobLogger.log(s"getSecurityLevel jobID:: $jobId orgid:: $orgId", None, INFO)(new String())
+    val httpResponseBody = getTenantPreferanceDetails(orgId, "userPrivateFields")
+    val responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponseBody)
+    val data = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+      .getOrElse("data", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
+    val piiFields = data.getOrElse("PIIFields", List[String]()).asInstanceOf[List[String]]
+    piiFields
+  }
+
+  /**
+   * fetch the job security level by calling tenant preference read API using orgId
+   *
+   * @param jobId
+   * @param orgId
+   * @return
+   */
+  def getTenantPreferanceDetails(orgId: String, key: String): String = {
+    JobLogger.log(s"getTenantPreferanceDetails orgid:: $orgId", None, INFO)(new String())
+    val requestBody = Map("request" -> Map("orgId" -> orgId, "key" -> key))
     val request = JSONUtils.serialize(requestBody)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
     val readTenantPrefURL = Constants.TENANT_PREFERENCE_PRIVATE_READ_URL
-    JobLogger.log(s"getSecurityLevel readTenantPrefURL:: $readTenantPrefURL", None, INFO)(new String())
+    JobLogger.log(s"getTenantPreferanceDetails readTenantPrefURL:: $readTenantPrefURL", None, INFO)(new String())
     val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
     if (httpResponse.status == 200) {
-      JobLogger.log(s"dataSecurityPolicy for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
-      val responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponse.body)
-      val data = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-        .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-        .getOrElse("data", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-      val globalLevel = data.getOrElse("level", "").asInstanceOf[String]
-      val jobDetail = data.getOrElse("job", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-        .getOrElse(jobId, Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-      val jobLevel = jobDetail.getOrElse("level", "").asInstanceOf[String]
-      if (!StringUtils.isEmpty(jobLevel)) jobLevel else globalLevel
+      JobLogger.log(s"getTenantPreferanceDetails for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
+      val responseBody = httpResponse.body
+      responseBody
     } else {
       JobLogger.log(s"Error response from Tenant Preferance read API for request :: $requestBody :: response is :: ${httpResponse.status} ::  ${httpResponse.body}", None, ERROR)(new String())
       ""
