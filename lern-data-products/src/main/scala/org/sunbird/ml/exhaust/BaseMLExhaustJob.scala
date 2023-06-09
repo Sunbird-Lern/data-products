@@ -96,8 +96,6 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       println("security level "+ level)
       JobLogger.log(s"executeOnDemand for url = $orgId and level = $level and channel= $request.requested_channel", None, INFO)
       val reqOrgAndLevel = (request.request_id, orgId, level)
-      println("request_id "+ request.request_id)
-      println("org id "+ orgId)
       reqOrgAndLevelDtl :+= reqOrgAndLevel
       val updRequest: (JobRequest, StorageConfig) = {
         try {

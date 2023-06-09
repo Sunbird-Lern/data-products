@@ -28,24 +28,15 @@ object DataSecurityUtil {
    */
   def getSecurityLevel(jobId: String, orgId: String): String = {
     JobLogger.log(s"getSecurityLevel jobID:: $jobId orgid:: $orgId", None, INFO)(new String())
-    println("get security level function start -----")
-    println("job id "+ jobId)
-    println("org id "+ orgId)
     val requestBody = Map("request" -> Map("orgId" -> orgId, "key" -> "dataSecurityPolicy"))
     val request = JSONUtils.serialize(requestBody)
-    println("request body "+ request)
     val headers: Map[String, String] = Map("Content-Type" -> "application/json")
-    println("headers "+ headers)
     val readTenantPrefURL = Constants.TENANT_PREFERENCE_PRIVATE_READ_URL
-    println("readTenantPrefURL "+ readTenantPrefURL)
     JobLogger.log(s"getSecurityLevel readTenantPrefURL:: $readTenantPrefURL", None, INFO)(new String())
     val httpResponse = httpUtil.post(readTenantPrefURL, request, headers)
-    println("API Status code "+ httpResponse.status)
-    println("API Response Body "+ httpResponse.body)
     if (httpResponse.status == 200) {
       JobLogger.log(s"dataSecurityPolicy for org=$orgId, response body=${httpResponse.body}", None, INFO)(new String())
       val responseBody = JSONUtils.deserialize[Map[String, AnyRef]](httpResponse.body)
-      println("security level API Response "+ responseBody)
       val data = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
         .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
         .getOrElse("data", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
