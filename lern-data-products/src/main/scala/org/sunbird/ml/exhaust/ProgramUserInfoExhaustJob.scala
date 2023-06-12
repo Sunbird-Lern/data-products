@@ -39,7 +39,7 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
   override def processProgram(request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     markRequestAsProcessing(request)
 
-    println("request "+ request)
+    println("request  "+ request)
     println("storage config "+ storageConfig)
 
     val requestBody = JSONUtils.deserialize[RequestBody](request.request_data)
