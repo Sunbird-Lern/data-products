@@ -126,7 +126,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "Check for user PII_consent = True and consent_flag = true" in {
+  ignore should "Check for user PII_consent = true and consent_flag = true" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_605083ba09b7bd61555580fb:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"605083ba09b7bd61555580fb\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"605083ba09b7bd61555580fb\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -149,7 +149,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check for user PII_Consent = True with consent_flag = False " in {
+  ignore should "check for user PII_Consent = true with consent_flag = false" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_607d3000aba99f53949dda45:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"607d3000aba99f53949dda45\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"607d3000aba99f53949dda45\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -172,7 +172,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check for user PII_Consent = False" in {
+  ignore should "check for user PII_Consent = false" in {
 
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_607d3000aba99f53949ddc35:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"607d3000aba99f53949ddc35\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"607d3000aba99f53949ddc35\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
@@ -220,7 +220,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check with organization,startdate & enddate : insert status as SUCCESS " in {
+  ignore should "check with organization,startdate & enddate : insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"organisation_id\",\"operator\":\"=\",\"value\":\"0126796199493140480\"},{\"name\":\"updated_at\",\"operator\":\">=\",\"value\":\"2022-11-07\"},{\"name\":\"updated_at\",\"operator\":\"<=\",\"value\":\"2023-01-01\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
     implicit val fc = new FrameworkContext()
@@ -244,7 +244,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
 
   }
 
-  ignore should "check with district,startdate & enddate : insert status as SUCCESS " in {
+  ignore should "check with district,startdate & enddate : insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"607d320de9cce45e22ce90c0\"},{\"name\":\"user_locations[\''district_id\'']\",\"operator\":\"=\",\"value\":\"48145de3-45f7-4500-ab0b-a97672cd81bb\"},{\"name\":\"updated_at\",\"operator\":\">=\",\"value\":\"2022-04-16\"},{\"name\":\"updated_at\",\"operator\":\"<=\",\"value\":\"2022-05-16\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"607d320de9cce45e22ce90c0\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -269,7 +269,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check with startdate,district & organization : Insert status as SUCCESS " in {
+  ignore should "check with startdate,district & organization : Insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"user_locations[\''district_id\'']\",\"operator\":\"=\",\"value\":\"48145de3-45f7-4500-ab0b-a97672cd81bb\"},{\"name\":\"organisation_id\",\"operator\":\"=\",\"value\":\"0126796199493140480\"},{\"name\":\"updated_at\",\"operator\":\">=\",\"value\":\"2022-12-22\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -293,7 +293,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check with enddate,district & organization : Insert status as SUCCESS " in {
+  ignore should "check with enddate,district & organization : Insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"user_locations[\''district_id\'']\",\"operator\":\"=\",\"value\":\"48145de3-45f7-4500-ab0b-a97672cd81bb\"},{\"name\":\"organisation_id\",\"operator\":\"=\",\"value\":\"0126796199493140480\"},{\"name\":\"updated_at\",\"operator\":\"<=\",\"value\":\"2023-01-01\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -317,7 +317,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check with startdate & district : Insert status as SUCCESS " in {
+  ignore should "check with startdate & district : Insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"user_locations[\''district_id\'']\",\"operator\":\"=\",\"value\":\"48145de3-45f7-4500-ab0b-a97672cd81bb\"},{\"name\":\"updated_at\",\"operator\":\">=\",\"value\":\"2022-12-22\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -341,7 +341,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check with enddate & district : Insert status as SUCCESS " in {
+  ignore should "check with enddate & district : Insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"user_locations[\''district_id\'']\",\"operator\":\"=\",\"value\":\"2f76dcf5-e43b-4f71-a3f2-c8f19e1fce03\"},{\"name\":\"updated_at\",\"operator\":\"<=\",\"value\":\"2022-11-07\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
@@ -413,7 +413,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     }
   }
 
-  ignore should "check with startdate : Insert status as SUCCESS " in {
+  ignore should "check with startdate : Insert status as SUCCESS" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_601429016a1ef53356b1d714:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"},{\"name\":\"updated_at\",\"operator\":\">=\",\"value\":\"2022-11-07\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','ORG_001','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
 
