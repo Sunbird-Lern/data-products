@@ -138,6 +138,8 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
   }
 
   def validateRequest(request: JobRequest): Boolean = {
+    println(request.request_data)
+    println((Option(request.request_data).isEmpty))
     if (Option(request.request_data).isEmpty) false else true
   }
 
