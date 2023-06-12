@@ -104,7 +104,8 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
           JobLogger.log("Channel details at execute", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed programs" -> processedCount)), INFO)
 
           println("validate request " + validateRequest(request))
-          if (validateRequest(request)) {
+          println(validateRequest(request).get)
+          if (validateRequest(request).get) {
             println("validate request function")
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
             val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
@@ -137,7 +138,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     Metrics(totalRequests = Some(requests.length), failedRequests = Some(completedResult.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(completedResult.count(x => x.status.toUpperCase == "SUCCESS")), duplicateRequests = Some(dupRequestsList.length))
   }
 
-  def validateRequest(request: JobRequest): Boolean = {
+  def validateRequest(request: JobRequest): Option[Boolean] = {
     println("request data"+ request.request_data)
     println(request.request_data != null)
     var valReq: Boolean = false
@@ -149,7 +150,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
       valReq = false
     }
     println("val req "+ valReq)
-    valReq
+    Some(valReq)
   }
 
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
