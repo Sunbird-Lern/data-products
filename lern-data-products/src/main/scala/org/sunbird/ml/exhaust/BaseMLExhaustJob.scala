@@ -103,6 +103,8 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
           val processedSize = if (requestsCompleted.isEmpty) 0 else requestsCompleted.filter(f => f.channel.equals(request.requested_channel)).map(f => f.fileSize).sum
           JobLogger.log("Channel details at execute", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed programs" -> processedCount)), INFO)
 
+          println("request "+ request)
+          println("validate request " + validateRequest(request))
           if (validateRequest(request)) {
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
             val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
