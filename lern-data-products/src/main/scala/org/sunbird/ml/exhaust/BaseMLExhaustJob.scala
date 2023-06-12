@@ -140,12 +140,13 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
   def validateRequest(request: JobRequest): Boolean = {
     println("request data"+ request.request_data)
     println(request.request_data != null)
-    val valReq = if (request.request_data != null) {
+    var valReq: Boolean = false
+    if (request.request_data != null) {
       println("true")
-      true
+      valReq = true
     } else {
       println("false")
-      false
+      valReq = false
     }
     println("val req "+ valReq)
     valReq
