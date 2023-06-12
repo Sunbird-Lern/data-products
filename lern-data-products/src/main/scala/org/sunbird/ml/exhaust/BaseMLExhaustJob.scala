@@ -142,12 +142,12 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     println("request data"+ request.request_data)
     println(request.request_data != null)
     var valReq: Boolean = false
-    if (request.request_data != null) {
-      println("true")
-      valReq = true
-    } else {
+    if (request.request_data.isEmpty) {
       println("false")
       valReq = false
+    } else {
+      println("true")
+      valReq = true
     }
     println("val req "+ valReq)
     Some(valReq)
