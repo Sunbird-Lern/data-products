@@ -140,7 +140,12 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
   def validateRequest(request: JobRequest): Boolean = {
     println("request data"+ request.request_data)
     println(request.request_data != null)
-    if (request.request_data != null) true else false
+    val valReq = if (request.request_data != null) {
+      true
+    } else {
+      false
+    }
+    valReq
   }
 
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
