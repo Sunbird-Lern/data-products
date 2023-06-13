@@ -28,11 +28,11 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
 
   override def getReportKey() = "programuserinfo";
 
-  override def validateRequest(request: JobRequest): Option[Boolean] = {
-    if (super.validateRequest(request).get) {
-      if (request.encryption_key.isDefined) Some(true) else Some(false);
+  override def validateRequest(request: JobRequest): Boolean = {
+    if (super.validateRequest(request)) {
+      if (request.encryption_key.isDefined) true else false;
     } else {
-      Some(false);
+      false;
     }
   }
 

@@ -138,21 +138,24 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     Metrics(totalRequests = Some(requests.length), failedRequests = Some(completedResult.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(completedResult.count(x => x.status.toUpperCase == "SUCCESS")), duplicateRequests = Some(dupRequestsList.length))
   }
 
-  def validateRequest(request: JobRequest): Option[Boolean] = {
-    println("request data"+ request.request_data)
-    println(request.request_data != null)
-    var valReq: Boolean = false
-    if (request.request_data.isEmpty) {
-      println("false")
-      valReq = false
-    } else {
-      println("true")
-      valReq = true
-    }
-    println("val req "+ valReq)
-    Some(valReq)
-  }
+//  def validateRequest(request: JobRequest): Option[Boolean] = {
+//    println("request data"+ request.request_data)
+//    println(request.request_data != null)
+//    var valReq: Boolean = false
+//    if (request.request_data.isEmpty) {
+//      println("false")
+//      valReq = false
+//    } else {
+//      println("true")
+//      valReq = true
+//    }
+//    println("val req "+ valReq)
+//    Some(valReq)
+//  }
 
+  def validateRequest(request: JobRequest): Boolean = {
+    if (request.request_data.isEmpty) false else true;
+  }
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
     /*
     reqHashMap: contains hash(request_data, encryption_key, requested_by) as key and list of entire req as value
