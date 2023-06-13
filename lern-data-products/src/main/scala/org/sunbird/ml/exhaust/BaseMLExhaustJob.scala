@@ -104,8 +104,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
           JobLogger.log("Channel details at execute", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed programs" -> processedCount)), INFO)
 
           println("validate request " + validateRequest(request))
-          println(validateRequest(request).get)
-          if (validateRequest(request).get) {
+          if (validateRequest(request)) {
             println("validate request function")
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
             val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
@@ -137,22 +136,6 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     val completedResult = result.map(f => f.join()); // Get the completed job requests
     Metrics(totalRequests = Some(requests.length), failedRequests = Some(completedResult.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(completedResult.count(x => x.status.toUpperCase == "SUCCESS")), duplicateRequests = Some(dupRequestsList.length))
   }
-
-//  def validateRequest(request: JobRequest): Option[Boolean] = {
-//    println("request data"+ request.request_data)
-//    println(request.request_data != null)
-//    var valReq: Boolean = false
-//    if (request.request_data.isEmpty) {
-//      println("false")
-//      valReq = false
-//    } else {
-//      println("true")
-//      valReq = true
-//    }
-//    println("val req "+ valReq)
-//    Some(valReq)
-//  }
-
   def validateRequest(request: JobRequest): Boolean = {
     if (request.request_data.isEmpty) false else true;
   }
