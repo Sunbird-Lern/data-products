@@ -103,16 +103,16 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
           val processedSize = if (requestsCompleted.isEmpty) 0 else requestsCompleted.filter(f => f.channel.equals(request.requested_channel)).map(f => f.fileSize).sum
           JobLogger.log("Channel details at execute", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed programs" -> processedCount)), INFO)
 
-//          println("validate request " + validateRequest(request))
-//          if (validateRequest(request)) {
-            println("validate request function - shakthi")
+          println("validate request " + validateRequest(request))
+          if (validateRequest(request)) {
+            println("validate request function")
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
             val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
             finalRes
-//          } else {
-//            JobLogger.log("Not a Valid Request Shakthi", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
-//            (markRequestAsFailed(request, "Not a Valid Request Shakthi"), storageConfig)
-//          }
+          } else {
+            JobLogger.log("Not a Valid Request Shakthi", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+            (markRequestAsFailed(request, "Not a Valid Request Shakthi"), storageConfig)
+          }
         } catch {
           case ex: Exception =>
             ex.printStackTrace()
