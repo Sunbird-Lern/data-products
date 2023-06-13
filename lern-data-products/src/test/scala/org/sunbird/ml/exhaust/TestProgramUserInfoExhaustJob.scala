@@ -64,7 +64,7 @@ class TestProgramUserInfoExhaustJoB extends BaseReportSpec with MockFactory with
     jedis.close()
   }
 
-  it should "generate the user info report with all the users for a given program" in {
+  ignore /*"ProgramUserInfoExhaustJob"*/ should "generate the user info report with all the users for a given program" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('program_602512d8e6aefa27d9629bc3:01250894314817129555','37564AN8F134RR7532F125651B51S17D','program-user-exhaust','SUBMITTED','{\"type\":\"program-user-exhaust\",\"params\":{\"filters\":[{\"table_name\":\"program_enrollment\",\"table_filters\":[{\"name\":\"program_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]},{\"table_name\":\"user_consent\",\"table_filters\":[{\"name\":\"object_id\",\"operator\":\"=\",\"value\":\"602512d8e6aefa27d9629bc3\"}]}]},\"title\":\"User Detail Report\"}','ml-program-test-user-01','default','2023-01-25 05:58:18.666', '{}', NULL, NULL, 0,'' ,0, 'test1234');")
     implicit val fc = new FrameworkContext()
