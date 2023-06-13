@@ -103,9 +103,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
           val processedSize = if (requestsCompleted.isEmpty) 0 else requestsCompleted.filter(f => f.channel.equals(request.requested_channel)).map(f => f.fileSize).sum
           JobLogger.log("Channel details at execute", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed programs" -> processedCount)), INFO)
 
-          println("validate request " + validateRequest(request))
           if (validateRequest(request)) {
-            println("validate request function")
             val res = CommonUtil.time(processProgram(request, storageConfig, requestsCompleted));
             val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
             finalRes
@@ -138,39 +136,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
   }
 
   def validateRequest(request: JobRequest): Boolean = {
-    val requestMap = JSONUtils.deserialize[Map[String, AnyRef]](request.request_data);
-    println("request map"+ requestMap)
-    println("request map datatype "+ requestMap.getClass)
-    println("request map isEmpty "+ requestMap.isEmpty)
-    try {
-      println("request inside code : map isEmpty " + requestMap.isEmpty)
-      return !requestMap.isEmpty
-    } catch {
-      case ex: Exception => {
-        JobLogger.log(ex.getMessage, None, ERROR);
-        println(ex.getMessage)
-        ex.printStackTrace()
-        false
-      }
-    }
-//          print("requestdata")
-//        println(request.request_data)
-//        Option(request.request_data) match {
-//          case Some(s) => if (s.trim.isEmpty)
-//          {
-//            println("isempty block")
-//          println(s)
-//          println(s.trim)
-//          println(s.trim.isEmpty)
-//            false} else {
-//            println("notempty block")
-//            println(s)
-//            println(s.trim)
-//            println(s.trim.isEmpty)
-//            true}
-//          case None => false
-//        }
-    //    if (Option(request.request_data).isEmpty) false else true;
+    if (Option(request.request_data).isEmpty) false else true
   }
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
     /*
