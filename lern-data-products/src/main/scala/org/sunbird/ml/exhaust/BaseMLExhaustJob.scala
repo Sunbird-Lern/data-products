@@ -110,8 +110,8 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
             val finalRes = transformData(res, request, storageConfig, requestsCompleted, totalRequests, orgId, level)
             finalRes
           } else {
-            JobLogger.log("Not a Valid Request Shakthi", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
-            (markRequestAsFailed(request, "Not a Valid Request Shakthi"), storageConfig)
+            JobLogger.log("Not a Valid Request", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+            (markRequestAsFailed(request, "Not a Valid Request"), storageConfig)
           }
         } catch {
           case ex: Exception =>
@@ -142,8 +142,16 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     println("request map"+ requestMap)
     println("request map datatype "+ requestMap.getClass)
     println("request map isEmpty "+ requestMap.isEmpty)
-    println("request map empty "+ requestMap.empty)
-    if (requestMap.isEmpty) false else true
+    try {
+      if (requestMap.isEmpty) return false else true
+    } catch {
+      case ex: Exception => {
+        JobLogger.log(ex.getMessage, None, ERROR);
+        println(ex.getMessage)
+        ex.printStackTrace()
+        false
+      }
+    }
 //          print("requestdata")
 //        println(request.request_data)
 //        Option(request.request_data) match {
