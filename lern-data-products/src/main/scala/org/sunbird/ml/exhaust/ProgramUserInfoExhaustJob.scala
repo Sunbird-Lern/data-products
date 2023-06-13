@@ -28,13 +28,13 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
 
   override def getReportKey() = "programuserinfo";
 
-  override def validateRequest(request: JobRequest): Boolean = {
-    if (super.validateRequest(request)) {
-      if (request.encryption_key.isDefined) true else false;
-    } else {
-      false;
-    }
-  }
+//  override def validateRequest(request: JobRequest): Boolean = {
+//    if (super.validateRequest(request)) {
+//      if (request.encryption_key.isDefined) true else false;
+//    } else {
+//      false;
+//    }
+//  }
 
   override def processProgram(request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     markRequestAsProcessing(request)
