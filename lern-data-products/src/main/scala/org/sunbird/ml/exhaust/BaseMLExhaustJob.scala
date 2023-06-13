@@ -137,28 +137,28 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     Metrics(totalRequests = Some(requests.length), failedRequests = Some(completedResult.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(completedResult.count(x => x.status.toUpperCase == "SUCCESS")), duplicateRequests = Some(dupRequestsList.length))
   }
 
-  def validateRequest(request: JobRequest): Boolean = {
-//    val requestMap = JSONUtils.deserialize[Map[String, AnyRef]](request.request_data);
-//    if (requestMap.isEmpty) false else true
-        print("requestdata")
-        println(request.request_data)
-        Option(request.request_data) match {
-          case Some(s) => if (s.trim.isEmpty)
-          {
-            println("isempty block")
-          println(s)
-          println(s.trim)
-          println(s.trim.isEmpty)
-            false} else {
-            println("notempty block")
-            println(s)
-            println(s.trim)
-            println(s.trim.isEmpty)
-            true}
-          case None => false
-        }
+  `def validateRequest(request: JobRequest): Boolean = {
+    val requestMap = JSONUtils.deserialize[Map[String, AnyRef]](request.request_data);
+    if (requestMap.isEmpty) false else true
+//          print("requestdata")
+//        println(request.request_data)
+//        Option(request.request_data) match {
+//          case Some(s) => if (s.trim.isEmpty)
+//          {
+//            println("isempty block")
+//          println(s)
+//          println(s.trim)
+//          println(s.trim.isEmpty)
+//            false} else {
+//            println("notempty block")
+//            println(s)
+//            println(s.trim)
+//            println(s.trim.isEmpty)
+//            true}
+//          case None => false
+//        }
     //    if (Option(request.request_data).isEmpty) false else true;
-  }
+  }`
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
     /*
     reqHashMap: contains hash(request_data, encryption_key, requested_by) as key and list of entire req as value
