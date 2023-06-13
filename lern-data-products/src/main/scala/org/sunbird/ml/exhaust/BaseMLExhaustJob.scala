@@ -143,7 +143,8 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     println("request map datatype "+ requestMap.getClass)
     println("request map isEmpty "+ requestMap.isEmpty)
     try {
-      !requestMap.isEmpty
+      println("request inside code : map isEmpty " + requestMap.isEmpty)
+      return !requestMap.isEmpty
     } catch {
       case ex: Exception => {
         JobLogger.log(ex.getMessage, None, ERROR);
