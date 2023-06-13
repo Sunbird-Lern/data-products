@@ -30,7 +30,7 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
 
   override def validateRequest(request: JobRequest): Boolean = {
     if (super.validateRequest(request)) {
-      if (request.encryption_key.isDefined) true else false;
+      if (request.encryption_key.isDefined && !(Option(request.request_data).isEmpty)) true else false;
     } else {
       false;
     }
