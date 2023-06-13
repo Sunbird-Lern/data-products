@@ -136,12 +136,13 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
     val completedResult = result.map(f => f.join()); // Get the completed job requests
     Metrics(totalRequests = Some(requests.length), failedRequests = Some(completedResult.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(completedResult.count(x => x.status.toUpperCase == "SUCCESS")), duplicateRequests = Some(dupRequestsList.length))
   }
+
   def validateRequest(request: JobRequest): Boolean = {
     Option(request.request_data) match {
+      case Some(s) => if (s.trim.isEmpty) false else true
       case None => false
-      case Some(s) => s.trim.isEmpty
     }
-//    if (Option(request.request_data).isEmpty) false else true;
+    //    if (Option(request.request_data).isEmpty) false else true;
   }
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
     /*
