@@ -158,7 +158,7 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
 //          case None => false
 //        }
     //    if (Option(request.request_data).isEmpty) false else true;
-  }`
+  }
   def getDuplicateRequests(requests: Array[JobRequest]): Map[String, List[JobRequest]] = {
     /*
     reqHashMap: contains hash(request_data, encryption_key, requested_by) as key and list of entire req as value
