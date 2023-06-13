@@ -139,6 +139,10 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
 
   def validateRequest(request: JobRequest): Boolean = {
     val requestMap = JSONUtils.deserialize[Map[String, AnyRef]](request.request_data);
+    println("request map"+ requestMap)
+    println("request map datatype "+ requestMap.getClass)
+    println("request map isEmpty "+ requestMap.isEmpty)
+    println("request map empty "+ requestMap.empty)
     if (requestMap.isEmpty) false else true
 //          print("requestdata")
 //        println(request.request_data)
