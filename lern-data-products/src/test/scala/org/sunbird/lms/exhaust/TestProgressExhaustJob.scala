@@ -62,6 +62,7 @@ class TestProgressExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     EmbeddedCassandra.close()
     EmbeddedPostgresql.close()
     spark.close()
+    tenantPrefWebserver.close()
   }
 
   def setupRedisData(): Unit = {

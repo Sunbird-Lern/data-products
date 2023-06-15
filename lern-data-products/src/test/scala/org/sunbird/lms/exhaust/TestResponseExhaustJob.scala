@@ -1,5 +1,6 @@
 package org.sunbird.lms.exhaust
 
+import okhttp3.mockwebserver.{Dispatcher, MockResponse, MockWebServer, RecordedRequest}
 import org.apache.spark.sql.{Encoders, SparkSession}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
@@ -28,6 +29,7 @@ class TestResponseExhaustJob extends BaseReportSpec with MockFactory with BaseRe
   implicit var spark: SparkSession = _
   var redisServer: RedisServer = _
   var jedis: Jedis = _
+  val tenantPrefWebserver = new MockWebServer()
   val outputLocation = AppConf.getConfig("collection.exhaust.store.prefix")
 
   override def beforeAll(): Unit = {
@@ -40,6 +42,23 @@ class TestResponseExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     EmbeddedCassandra.loadData("src/test/resources/exhaust/report_data.cql") // Load test data in embedded cassandra server
     EmbeddedPostgresql.start()
     EmbeddedPostgresql.createJobRequestTable()
+
+    val tenantPrefDispatcher: Dispatcher = new Dispatcher() {
+      @throws[InterruptedException]
+      override def dispatch(request: RecordedRequest): MockResponse = {
+        val body = new String(request.getBody.readByteArray())
+        val jsonBody = JSONUtils.deserialize[Map[String, AnyRef]](body)
+        val requestBody = jsonBody.getOrElse("request", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]].getOrElse("key", "")
+        (request.getPath, request.getMethod, requestBody) match {
+          case ("/private/v2/org/preferences/read", "POST", "dataSecurityPolicy") =>
+            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"updatedBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","data":{"level":"PLAIN_DATASET","dataEncrypted":"No","comments":"Data is not encrypted","job":{"progress-exhaust":{"level":"PUBLIC_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"response-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"userinfo-exhaust":{"level":"PASSWORD_PROTECTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"program-user-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"Yes","comments":"Text key Encrypted File"}},"securityLevels":{"PLAIN_DATASET":"Data is present in plain text/zip. Generally applicable to open datasets.","PASSWORD_PROTECTED_DATASET":"Password protected zip file. Generally applicable to non PII data sets but can contain sensitive information which may not be considered open.","TEXT_KEY_ENCRYPTED_DATASET":"Data encrypted with a user provided encryption key. Generally applicable to non PII data but can contain sensitive information which may not be considered open.","PUBLIC_KEY_ENCRYPTED_DATASET":"Data encrypted via an org provided public/private key. Generally applicable to all PII data exhaust."}},"createdBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","updatedOn":1684825029544,"createdOn":1682501851315,"orgId":"default","key":"dataSecurityPolicy"}}}""")
+          case ("/private/v2/org/preferences/read", "POST", "userPrivateFields") =>
+            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"data": {"PIIFields":["courseid", "collectionName", "batchid", "batchName", "userid",  "state", "district", "orgname", "schooludisecode", "schoolname", "board", "block", "cluster", "usertype", "usersubtype", "enrolleddate", "completedon", "certificatestatus", "completionPercentage"]}}}}""")
+        }
+      }
+    }
+    tenantPrefWebserver.setDispatcher(tenantPrefDispatcher)
+    tenantPrefWebserver.start(9090)
   }
 
   override def afterAll() : Unit = {
@@ -50,6 +69,7 @@ class TestResponseExhaustJob extends BaseReportSpec with MockFactory with BaseRe
 
     EmbeddedCassandra.close()
     EmbeddedPostgresql.close()
+    tenantPrefWebserver.close()
   }
 
   def setupRedisData(): Unit = {
@@ -123,7 +143,8 @@ class TestResponseExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration) VALUES ('do_1131350140968632321230_batch-001:01250894314817126443', '37564CF8F134EE7532F125651B51D17F', 'response-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0);")
 
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ResponseExhaustJob","modelParams":{"mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"127.0.0.1","sparkUserDbRedisIndex":"12", "sparkUserDbRedisPort":"6341","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"", "storageContainer": ""},"parallelization":8,"appName":"Response Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ResponseExhaustJob","modelParams":{"mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"127.0.0.1","sparkUserDbRedisIndex":"12", "sparkUserDbRedisPort":"6341","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"", "storageContainer": ""},"parallelization":8,"appName":"Response Exhaust","csvColumns":["courseid", "collectionName", "batchid", "batchName", "userid", "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid",
+                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             "questiontype", "questiontitle", "questiondescription", "questionduration", "questionscore", "questionmaxscore", "questionoption", "questionresponse"]}""".stripMargin
     ResponseExhaustJob.main(strConfig)
 
   }
