@@ -218,9 +218,11 @@ object DataSecurityUtil {
         if(request != null) {
           tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
         } else {
+          val urlSplitArr = url.split("/")
           if (!storageConfig.store.equals("local")) {
-            val urlSplitArr = url.split("/")
             tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(3) + "/"
+          } else {
+            tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(4) + "/"
           }
         }
         val path = Paths.get(url)
@@ -269,9 +271,11 @@ object DataSecurityUtil {
         if(request != null) {
           tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
         } else {
+          val urlSplitArr = url.split("/")
           if (!storageConfig.store.equals("local")) {
-            val urlSplitArr = url.split("/")
             tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(3) + "/"
+          } else {
+          tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(4) + "/"
           }
         }
         val path = Paths.get(url)
