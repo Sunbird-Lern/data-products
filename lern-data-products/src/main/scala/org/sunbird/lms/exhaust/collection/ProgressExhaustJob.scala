@@ -52,9 +52,7 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
     "completionPercentage" -> "Progress", "total_sum_score" -> "Total Score", "certificatestatus" -> "Certificate Status")
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
-    val csvColumns1 = config.modelParams.get("csvColumns")
-    JobLogger.log(s"processBatch for csvColumns = $csvColumns1", None, INFO)
-    val filterColumns : List[String] = config.modelParams.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+    val filterColumns : List[String] = config.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
     val hierarchyData = loadCollectionHierarchy(collectionBatch.collectionId)
     //val collectionAggDF = getCollectionAggWithModuleData(collectionBatch, hierarchyData).withColumn("batchid", lit(collectionBatch.batchId));
     //val enrolledUsersToBatch = updateCertificateStatus(userEnrolmentDF).select(filterColumns.head, filterColumns.tail: _*)

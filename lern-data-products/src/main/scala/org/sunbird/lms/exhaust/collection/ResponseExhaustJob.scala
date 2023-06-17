@@ -31,7 +31,7 @@ object ResponseExhaustJob extends BaseCollectionExhaustJob {
     "questionscore" -> "Question Score", "questionmaxscore" -> "Question Max Score", "questionoption" -> "Question Options", "questionresponse" -> "Question Response")
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
-    val filterColumns : List[String] = config.modelParams.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+    val filterColumns : List[String] = config.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
     val assessmentDF = getAssessmentDF(userEnrolmentDF, collectionBatch).persist();
     persistedDF.append(assessmentDF);
     val contentIds = assessmentDF.select("content_id").dropDuplicates().collect().map(f => f.get(0));
