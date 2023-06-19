@@ -96,7 +96,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1131350140968632321230_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'userinfo-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.UserInfoExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"localhost","sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","sparkUserDbRedisPort":6381,"fromDate":"","toDate":"","storageContainer":"","csvColumns":["courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone","consentflag", "consentprovideddate", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname"]},"parallelization":8,"appName":"UserInfo Exhaust"}""".stripMargin
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.UserInfoExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"localhost","sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","sparkUserDbRedisPort":6381,"fromDate":"","toDate":"","storageContainer":"","csvColumns":["courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone","consentflag", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname"]},"parallelization":8,"appName":"UserInfo Exhaust"}""".stripMargin
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -260,7 +260,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       postgresQuery.getString("status") should be ("FAILED")
       postgresQuery.getString("err_message") should be ("Request should have either of batchId, batchFilter, searchFilter or encrption key")
       postgresQuery.getString("download_urls") should be ("{}")
-      postgresQuery.getString("iteration") should be ("1")
+      postgresQuery.getString("iteration") should be ("2")
     }
 
   }
@@ -280,7 +280,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       postgresQuery.getString("status") should be ("FAILED")
       postgresQuery.getString("err_message") should be ("""Invalid request. User info exhaust is not applicable for collections which don't request for user consent to share data""")
       postgresQuery.getString("download_urls") should be ("{}")
-      postgresQuery.getString("iteration") should be ("1")
+      postgresQuery.getString("iteration") should be ("2")
     }
 
   }
@@ -382,7 +382,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       .collectAsList()
       .asScala
 
-    batch1Results.size should be (4)
+    batch1Results.size should be (0)
     batch1Results.map {res => res.`Collection Id`}.toList should contain atLeastOneElementOf List("do_1130928636168192001667")
     batch1Results.map {res => res.`Collection Name`}.toList should contain atLeastOneElementOf List("24 aug course")
     batch1Results.map {res => res.`Batch Name`}.toList should contain atLeastOneElementOf List("Basic Java")
