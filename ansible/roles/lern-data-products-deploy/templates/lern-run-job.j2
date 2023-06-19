@@ -57,6 +57,8 @@ get_report_job_model_name(){
     ;;
     "old-certificate-migration-job") echo 'org.sunbird.lms.audit.OldCertificateMigrationJob'
     ;;
+    "program-user-exhaust") echo 'org.sunbird.ml.exhaust.ProgramUserInfoExhaustJob'
+    ;;
     *) echo $1
     ;;
   esac
