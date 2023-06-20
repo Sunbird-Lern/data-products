@@ -68,8 +68,8 @@ class TestProgressExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     }
     tenantPrefWebserver.setDispatcher(tenantPrefDispatcher)
     tenantPrefWebserver.start(9090)
-    tenantPrefWebserver.setDispatcher(tenantPrefDispatcher1)
-    tenantPrefWebserver.start(9091)
+    tenantPrefWebserver1.setDispatcher(tenantPrefDispatcher1)
+    tenantPrefWebserver1.start(9091)
   }
 
   override def afterAll() : Unit = {
@@ -80,6 +80,7 @@ class TestProgressExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     EmbeddedPostgresql.close()
     spark.close()
     tenantPrefWebserver.close()
+    tenantPrefWebserver1.close()
   }
 
   def setupRedisData(): Unit = {
