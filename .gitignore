@@ -21,3 +21,4 @@ lern-data-products/src/test/resources.csv
 lern-data-products/src/test/resources/tpd_metrics/
 **.csv.crc
 **/bin/*
+**/.vscode
