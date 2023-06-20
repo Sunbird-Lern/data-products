@@ -91,7 +91,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     jedis.close()
   }
 
-  "UserInfoExhaustJob" should "generate the user info report with all the users for a batch" in {
+  ignore should "generate the user info report with all the users for a batch" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1131350140968632321230_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'userinfo-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0, 'test12');")
 
@@ -154,7 +154,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     UserInfoExhaustJob.canZipExceptionBeIgnored() should be (false)
   }
 
-  ignore should "generate the user info report with all the users for a batch with requested_channel as System" in {
+  it should "generate the user info report with all the users for a batch with requested_channel as System" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, execution_time, err_message ,iteration, encryption_key) VALUES ('do_1131350140968632321230_batch-001:channel-01', '37564CF8F134EE7532F125651B51D17F', 'userinfo-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', '0130107621805015045', '2020-10-19 05:58:18.666', '{}', '2020-10-19 05:58:18.666', 0, '' ,0, 'test12');")
 
