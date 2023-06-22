@@ -201,6 +201,7 @@ object DataSecurityUtil {
     var tempDir = ""
     if (level.nonEmpty) {
       val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
+      val path = Paths.get(url)
       val filePrefix = storageConfig.store.toLowerCase() match {
         // $COVERAGE-OFF$ Disabling scoverage
         case "s3" =>
@@ -211,7 +212,7 @@ object DataSecurityUtil {
           CommonUtil.getGCloudFile(storageConfig.container, "")
         // $COVERAGE-ON$ for case: local
         case _ =>
-          storageConfig.fileName
+          path.toString
       }
 
       if (!url.isEmpty ) {
@@ -225,7 +226,6 @@ object DataSecurityUtil {
             tempDir = AppConf.getConfig("spark_output_temp_dir") + urlSplitArr(4) + "/"
           }
         }
-        val path = Paths.get(url)
         objKey = url.replace(filePrefix, "")
         localPath = tempDir + path.getFileName
         fc.getHadoopFileUtil().delete(conf, tempDir)
