@@ -32,6 +32,7 @@ hierarchySearchServicEndpoint: /v3/hierarchy/
 
 user_table_keyspace: "sunbird"
 course_keyspace: "sunbird_courses"
+program_keyspace: "sunbird_programs"
 hierarchy_store_keyspace: "{{ env }}_hierarchy_store"
 job_request_table: "{{ env }}_job_request"
 dataset_metadata_table: "{{ env }}_dataset_metadata"
