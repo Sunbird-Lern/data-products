@@ -510,7 +510,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='userinfo-exhaust'")
 
     while(pResponse.next()) {
-      pResponse.getString("status") should be ("SUCCESS")
+      pResponse.getString("status") should be ("FAILED")
       pResponse.getString("err_message") should be ("Request Security Level is not matching with PII fields or csvColumns CSV columns configured. Please check.")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
       pResponse.getString("download_urls") should be (s"{userinfo-exhaust/$requestId/batch-006_userinfo_${getDate()}.zip}")
