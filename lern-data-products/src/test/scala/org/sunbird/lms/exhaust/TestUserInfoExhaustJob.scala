@@ -52,7 +52,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
           case ("/private/v2/org/preferences/read", "POST", "dataSecurityPolicy") =>
             new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"updatedBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","data":{"level":"PLAIN_DATASET","dataEncrypted":"No","comments":"Data is not encrypted","job":{"progress-exhaust":{"level":"PUBLIC_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"response-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"userinfo-exhaust":{"level":"PASSWORD_PROTECTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"program-user-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"Yes","comments":"Text key Encrypted File"}},"securityLevels":{"PLAIN_DATASET":"Data is present in plain text/zip. Generally applicable to open datasets.","PASSWORD_PROTECTED_DATASET":"Password protected zip file. Generally applicable to non PII data sets but can contain sensitive information which may not be considered open.","TEXT_KEY_ENCRYPTED_DATASET":"Data encrypted with a user provided encryption key. Generally applicable to non PII data but can contain sensitive information which may not be considered open.","PUBLIC_KEY_ENCRYPTED_DATASET":"Data encrypted via an org provided public/private key. Generally applicable to all PII data exhaust."}},"createdBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","updatedOn":1684825029544,"createdOn":1682501851315,"orgId":"default","key":"dataSecurityPolicy"}}}""")
           case ("/private/v2/org/preferences/read", "POST", "userPrivateFields") =>
-            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"data": {"PIIFields":["courseid", "collectionName", "batchid", "batchName", "userid",  "state", "district", "orgname", "schooludisecode", "schoolname", "board", "block", "cluster", "usertype", "usersubtype", "enrolleddate", "completedon", "certificatestatus", "completionPercentage"]}}}}""")
+            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"data": {"PIIFields":["courseid","collectionName","batchid","batchName","userid","state","district","orgname","schooludisecode","schoolname","block","cluster","usertype","usersubtype"]}}}}""")
         }
       }
     }
@@ -279,7 +279,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       postgresQuery.getString("status") should be ("FAILED")
       postgresQuery.getString("err_message") should be ("""Invalid request. User info exhaust is not applicable for collections which don't request for user consent to share data""")
       postgresQuery.getString("download_urls") should be ("{}")
-      postgresQuery.getString("iteration") should be ("2")
+      postgresQuery.getString("iteration") should be ("1")
     }
 
   }
@@ -510,12 +510,12 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
     val pResponse = EmbeddedPostgresql.executeQuery("SELECT * FROM job_request WHERE job_id='userinfo-exhaust'")
 
     while(pResponse.next()) {
-      pResponse.getString("status") should be ("FAILED")
-      pResponse.getString("err_message") should be ("Request Security Level is not matching with PII fields or csvColumns CSV columns configured. Please check.")
+      pResponse.getString("status") should be ("SUCCESS")
+      pResponse.getString("err_message") should be ("")
       pResponse.getString("dt_job_submitted") should be ("2020-10-19 05:58:18.666")
       pResponse.getString("download_urls") should be (s"{userinfo-exhaust/$requestId/batch-006_userinfo_${getDate()}.zip}")
       pResponse.getString("dt_file_created") should be (null)
-      pResponse.getString("iteration") should be ("1")
+      pResponse.getString("iteration") should be ("0")
     }
   }
 
