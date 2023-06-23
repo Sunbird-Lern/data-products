@@ -212,7 +212,13 @@ object DataSecurityUtil {
           CommonUtil.getGCloudFile(storageConfig.container, "")
         // $COVERAGE-ON$ for case: local
         case _ =>
-          path.toString
+          val filePath = path.toString
+          if (filePath.contains(storageConfig.fileName)){
+            filePath
+          } else {
+            storageConfig.fileName + "/" + filePath
+          }
+
       }
 
       if (!url.isEmpty ) {
