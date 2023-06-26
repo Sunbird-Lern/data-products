@@ -54,7 +54,7 @@ object DataSecurityUtil {
     val data = responseBody.getOrElse("result", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
       .getOrElse("response", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
       .getOrElse("data", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]]
-    val piiFields = data.getOrElse("PIIFields", List[String]()).asInstanceOf[List[String]]
+    val piiFields = data.getOrElse("piiFields", List[String]()).asInstanceOf[List[String]]
     piiFields
   }
 
