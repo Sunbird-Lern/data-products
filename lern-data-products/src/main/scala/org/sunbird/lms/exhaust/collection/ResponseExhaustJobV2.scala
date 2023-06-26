@@ -106,15 +106,4 @@ object ResponseExhaustJobV2 extends BaseCollectionExhaustJob {
       .withColumn("last_attempted_on", col("last_attempted_on").cast(StringType))
       .drop("question", "questiondata", "question_data", "created_on", "updated_on")
   }
-
-  override def validateCsvColumns(piiFields: List[String], csvColumns: List[String], level: String): Boolean = {
-    var exists = false
-    if(level == "PLAIN_DATASET" && !piiFields.isEmpty) {
-      return false
-    }
-    if(level == "PASSWORD_PROTECTED_DATASET" || level == "TEXT_KEY_ENCRYPTED_DATASET" || level == "PUBLIC_KEY_ENCRYPTED_DATASET") {
-      exists = true
-    }
-    exists
-  }
 }
