@@ -16,7 +16,7 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
   override def getReportPath() = "userinfo-exhaust/";
 
   override def getReportKey() = "userinfo";
-  private val encryptedFields = Array("email", "phone");
+  private val encryptedFields = Array("email", "phone", "username");
 
   override def getUserCacheColumns(): Seq[String] = {
     Seq("userid", "username", "state", "district", "rootorgid", "orgname", "email", "phone", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname")
@@ -84,5 +84,21 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
    * @return
    */
   override def canZipExceptionBeIgnored(): Boolean = false
+
+  override def validateCsvColumns(piiFields: List[String], csvColumns: List[String], level: String): Boolean = {
+    var exists = false
+    if(level == "PLAIN_DATASET" && !piiFields.isEmpty) {
+      return exists
+    }
+    if(level == "PASSWORD_PROTECTED_DATASET" || level == "TEXT_KEY_ENCRYPTED_DATASET" || level == "PUBLIC_KEY_ENCRYPTED_DATASET") {
+      for(encField <- encryptedFields) {
+        if(!(csvColumns.contains(encField)) || !(piiFields.contains(encField))) {
+          return false
+        }
+        exists =  true
+      }
+    }
+    exists
+  }
 
 }

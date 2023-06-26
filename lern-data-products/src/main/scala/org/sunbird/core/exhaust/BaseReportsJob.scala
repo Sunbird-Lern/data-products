@@ -81,4 +81,8 @@ trait BaseReportsJob {
     StorageConfig(store, container, key, Option(storageKey), Option(storageSecret));
   }
 
+  def validateCsvColumns(piiFields: List[String], csvColumns: List[String], level: String): Boolean = {
+    true
+  }
+
 }

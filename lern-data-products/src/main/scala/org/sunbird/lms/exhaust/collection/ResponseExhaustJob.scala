@@ -69,4 +69,15 @@ object ResponseExhaustJob extends BaseCollectionExhaustJob {
       .withColumn("questionoption", UDFUtils.toJSON(col("questiondata.params")))
       .drop("question", "questiondata")
   }
+
+  override def validateCsvColumns(piiFields: List[String], csvColumns: List[String], level: String): Boolean = {
+    var exists = false
+    if(level == "PLAIN_DATASET" && !piiFields.isEmpty) {
+      return false
+    }
+    if(level == "PASSWORD_PROTECTED_DATASET" || level == "TEXT_KEY_ENCRYPTED_DATASET" || level == "PUBLIC_KEY_ENCRYPTED_DATASET") {
+      exists = true
+    }
+    exists
+  }
 }
