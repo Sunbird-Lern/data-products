@@ -75,10 +75,7 @@ trait BaseReportsJob {
     val reportsStorageAccountSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
     if (reportsStorageAccountKey != null && reportsStorageAccountSecret.nonEmpty) {
       store.toLowerCase() match {
-        case "s3" =>
-          sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", AppConf.getConfig(reportsStorageAccountKey));
-          sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", AppConf.getConfig(reportsStorageAccountSecret));
-        case "oci" =>
+        case "s3" | "oci" =>
           sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", AppConf.getConfig(reportsStorageAccountKey));
           sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", AppConf.getConfig(reportsStorageAccountSecret));
         case "azure" =>
