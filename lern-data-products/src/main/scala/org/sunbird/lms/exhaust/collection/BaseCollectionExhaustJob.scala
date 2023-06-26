@@ -274,7 +274,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       return false
     }
     if(level == "PASSWORD_PROTECTED_DATASET" || level == "TEXT_KEY_ENCRYPTED_DATASET" || level == "PUBLIC_KEY_ENCRYPTED_DATASET") {
-      exists = csvColumns.containsSlice(piiFields)
+      exists = piiFields.forall(csvColumns.contains)
     }
     exists
   }
