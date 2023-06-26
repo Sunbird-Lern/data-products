@@ -279,7 +279,7 @@ class TestUserInfoExhaustJob extends BaseReportSpec with MockFactory with BaseRe
       postgresQuery.getString("status") should be ("FAILED")
       postgresQuery.getString("err_message") should be ("""Invalid request. User info exhaust is not applicable for collections which don't request for user consent to share data""")
       postgresQuery.getString("download_urls") should be ("{}")
-      postgresQuery.getString("iteration") should be ("1")
+      postgresQuery.getString("iteration") should be ("2")
     }
 
   }
