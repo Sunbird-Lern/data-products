@@ -21,8 +21,8 @@ object ResponseExhaustJob extends BaseCollectionExhaustJob {
 
   private val assessmentAggDBSettings = Map("table" -> "assessment_aggregator", "keyspace" -> AppConf.getConfig("sunbird.courses.keyspace"), "cluster" -> "LMSCluster");
 
-  private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid",
-    "questiontype", "questiontitle", "questiondescription", "questionduration", "questionscore", "questionmaxscore", "questionoption", "questionresponse");
+  /*private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid",
+    "questiontype", "questiontitle", "questiondescription", "questionduration", "questionscore", "questionmaxscore", "questionoption", "questionresponse");*/
   private val columnsOrder = List("Collection Id", "Collection Name", "Batch Id", "Batch Name", "User UUID", "QuestionSet Id", "QuestionSet Title", "Attempt Id", "Attempted On",
     "Question Id", "Question Type", "Question Title", "Question Description", "Question Duration", "Question Score", "Question Max Score", "Question Options", "Question Response");
   val columnMapping = Map("courseid" -> "Collection Id", "collectionName" -> "Collection Name", "batchid" -> "Batch Id", "batchName" -> "Batch Name", "userid" -> "User UUID",
@@ -31,6 +31,7 @@ object ResponseExhaustJob extends BaseCollectionExhaustJob {
     "questionscore" -> "Question Score", "questionmaxscore" -> "Question Max Score", "questionoption" -> "Question Options", "questionresponse" -> "Question Response")
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
+    val filterColumns : List[String] = config.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
     val assessmentDF = getAssessmentDF(userEnrolmentDF, collectionBatch).persist();
     persistedDF.append(assessmentDF);
     val contentIds = assessmentDF.select("content_id").dropDuplicates().collect().map(f => f.get(0));

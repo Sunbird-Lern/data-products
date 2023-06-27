@@ -16,7 +16,7 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
   override def getReportPath() = "userinfo-exhaust/";
 
   override def getReportKey() = "userinfo";
-  private val encryptedFields = Array("email", "phone");
+  private val encryptedFields = Array("email", "phone", "username");
 
   override def getUserCacheColumns(): Seq[String] = {
     Seq("userid", "username", "state", "district", "rootorgid", "orgname", "email", "phone", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname")
@@ -30,8 +30,8 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
     }
   }
 
-  private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone",
-    "consentflag", "consentprovideddate", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname");
+  /*private val filterColumns = Seq("courseid", "collectionName", "batchid", "batchName", "userid", "username", "state", "district", "orgname", "email", "phone",
+    "consentflag", "consentprovideddate", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname");*/
 
   private val consentFields = List("email", "phone")
   private val orgDerivedFields = List("username")
@@ -42,7 +42,7 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
     "email" -> "Email ID", "phone" -> "Mobile Number", "consentflag" -> "Consent Provided", "consentprovideddate" -> "Consent Provided Date", "schooludisecode" -> "School Id", "schoolname" -> "School Name")
 
   override def processBatch(userEnrolmentDF: DataFrame, collectionBatch: CollectionBatch)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
-
+    val filterColumns : List[String] = config.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
     collectionBatch.userConsent.getOrElse("No").toLowerCase() match {
       case "yes" =>
         val unmaskedDF = decryptUserInfo(applyConsentRules(collectionBatch, userEnrolmentDF))
@@ -84,5 +84,18 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
    * @return
    */
   override def canZipExceptionBeIgnored(): Boolean = false
+
+  override def validateCsvColumns(piiFields: List[String], csvColumns: List[String], level: String): Boolean = {
+    var exists = false
+    if(level == "PASSWORD_PROTECTED_DATASET" || level == "TEXT_KEY_ENCRYPTED_DATASET" || level == "PUBLIC_KEY_ENCRYPTED_DATASET") {
+      for(encField <- encryptedFields) {
+        if(!(csvColumns.contains(encField)) || !(piiFields.contains(encField))) {
+          return exists
+        }
+        exists =  true
+      }
+    }
+    exists
+  }
 
 }

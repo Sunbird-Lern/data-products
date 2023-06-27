@@ -35,6 +35,7 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
   var redisServer: RedisServer = _
   var jedis: Jedis = _
   val outputLocation = AppConf.getConfig("collection.exhaust.store.prefix")
+  val tenantPrefWebserver = new MockWebServer()
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -43,6 +44,25 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
     esServer.start(9080)
     redisServer = new RedisServer(6341)
     redisServer.start()
+
+    val tenantPrefDispatcher: Dispatcher = new Dispatcher() {
+      @throws[InterruptedException]
+      override def dispatch(request: RecordedRequest): MockResponse = {
+        val body = new String(request.getBody.readByteArray())
+        val jsonBody = JSONUtils.deserialize[Map[String, AnyRef]](body)
+        val requestBody = jsonBody.getOrElse("request", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]].getOrElse("key", "")
+        (request.getPath, request.getMethod, requestBody) match {
+          case ("/private/v2/org/preferences/read", "POST", "dataSecurityPolicy") =>
+            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"updatedBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","data":{"level":"PLAIN_DATASET","dataEncrypted":"No","comments":"Data is not encrypted","job":{"progress-exhaust":{"level":"PUBLIC_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"response-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"userinfo-exhaust":{"level":"PASSWORD_PROTECTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"program-user-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"Yes","comments":"Text key Encrypted File"}},"securityLevels":{"PLAIN_DATASET":"Data is present in plain text/zip. Generally applicable to open datasets.","PASSWORD_PROTECTED_DATASET":"Password protected zip file. Generally applicable to non PII data sets but can contain sensitive information which may not be considered open.","TEXT_KEY_ENCRYPTED_DATASET":"Data encrypted with a user provided encryption key. Generally applicable to non PII data but can contain sensitive information which may not be considered open.","PUBLIC_KEY_ENCRYPTED_DATASET":"Data encrypted via an org provided public/private key. Generally applicable to all PII data exhaust."}},"createdBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","updatedOn":1684825029544,"createdOn":1682501851315,"orgId":"default","key":"dataSecurityPolicy"}}}""")
+          case ("/private/v2/org/preferences/read", "POST", "userPrivateFields") =>
+            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"data": {"piiFields":["courseid", "collectionName", "batchid", "batchName", "userid", "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid", "questiontype", "questiontitle", "questiondescription", "questionduration", "questionscore", "questionmaxscore", "questionoption", "questionresponse"]}}}}""")
+        }
+      }
+    }
+
+    tenantPrefWebserver.setDispatcher(tenantPrefDispatcher)
+    tenantPrefWebserver.start(9090)
+
     setupRedisData()
     EmbeddedCassandra.loadData("src/test/resources/exhaust/report_data.cql") // Load test data in embedded cassandra server
     EmbeddedPostgresql.start()
@@ -55,6 +75,7 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
     redisServer.stop()
     spark.close()
     esServer.close()
+    tenantPrefWebserver.close()
     EmbeddedCassandra.close()
     EmbeddedPostgresql.close()
   }
@@ -77,10 +98,10 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
 
   "TestResponseExhaustJobV2" should "generate final output as csv and zip files" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
-    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration) VALUES ('do_1131350140968632321230_batch-001:01250894314817126443', '37564CF8F134EE7532F125651B51D17F', 'response-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0);")
+    EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration,encryption_key) VALUES ('do_1131350140968632321230_batch-001:01250894314817126443', '37564CF8F134EE7532F125651B51D17F', 'response-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0,'test12');")
 
     implicit val fc = new FrameworkContext()
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"assessmentFetcherConfig":{"store":"local","filePath":"src/test/resources/exhaust/data-archival/"},"searchFilter":{},"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"localhost","sparkUserDbRedisIndex":"0","sparkUserDbRedisPort":6341,"sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":""},"parallelization":8,"appName":"ResponseExhaustJob Exhaust"}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"assessmentFetcherConfig":{"store":"local","filePath":"src/test/resources/exhaust/data-archival/"},"searchFilter":{},"sparkElasticsearchConnectionHost":"localhost","sparkRedisConnectionHost":"localhost","sparkUserDbRedisIndex":"0","sparkUserDbRedisPort":6341,"sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":"","csvColumns":["courseid", "collectionName", "batchid", "batchName", "userid", "content_id", "contentname", "attempt_id", "last_attempted_on", "questionid", "questiontype", "questiontitle", "questiondescription", "questionduration", "questionscore", "questionmaxscore", "questionoption", "questionresponse"]},"parallelization":8,"appName":"ResponseExhaustJob Exhaust"}"""
     val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
     implicit val config = jobConfig
 
@@ -126,7 +147,7 @@ class TestResponseExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
 
   }
 
-  it should "generate report even if blob does not has any data for the batchid" in {
+  "TestResponseExhaustJobV2" should "generate report even if blob does not has any data for the batchid" in {
     EmbeddedPostgresql.execute(s"TRUNCATE $jobRequestTable")
     EmbeddedPostgresql.execute("INSERT INTO job_request (tag, request_id, job_id, status, request_data, requested_by, requested_channel, dt_job_submitted, download_urls, dt_file_created, dt_job_completed, execution_time, err_message ,iteration) VALUES ('do_1131350140968632321230_batch-001:01250894314817126443', '37564CF8F134EE7532F125651B51D17F', 'response-exhaust', 'SUBMITTED', '{\"batchId\": \"batch-001\"}', 'user-002', 'b00bc992ef25f1a9a8d63291e20efc8d', '2020-10-19 05:58:18.666', '{}', NULL, NULL, 0, '' ,0);")
 

@@ -1,8 +1,5 @@
 package org.sunbird.core.exhaust
 
-import net.lingala.zip4j.ZipFile
-import net.lingala.zip4j.model.ZipParameters
-import net.lingala.zip4j.model.enums.EncryptionMethod
 import org.apache.commons.lang.StringUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.functions._
@@ -11,9 +8,8 @@ import org.ekstep.analytics.framework.Level.INFO
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{CommonUtil, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
+import org.sunbird.core.util.DataSecurityUtil.{zipAndPasswordProtect}
 
-import java.io.File
-import java.nio.file.Paths
 import java.sql.{Connection, DriverManager, PreparedStatement, Timestamp}
 import java.util.Properties
 import java.util.concurrent.CompletableFuture
@@ -22,6 +18,7 @@ import java.util.function.Supplier
 case class JobRequest(tag: String, request_id: String, job_id: String, var status: String, request_data: String, requested_by: String, requested_channel: String,
                       dt_job_submitted: Long, var download_urls: Option[List[String]], var dt_file_created: Option[Long], var dt_job_completed: Option[Long],
                       var execution_time: Option[Long], var err_message: Option[String], var iteration: Option[Int], encryption_key: Option[String], var processed_batches : Option[String] = None) {
+
     def this() = this("", "", "", "", "", "", "", 0, None, None, None, None, None, None, None, None)
 }
 case class RequestStatus(channel: String, batchLimit: Long, fileLimit: Long)
@@ -114,16 +111,19 @@ trait OnDemandExhaustJob {
 
   }
 
-  def saveRequests(storageConfig: StorageConfig, requests: Array[JobRequest])(implicit conf: Configuration, fc: FrameworkContext) = {
-    val zippedRequests = for (request <- requests) yield processRequestEncryption(storageConfig, request)
+  def saveRequests(storageConfig: StorageConfig, requests: Array[JobRequest], reqOrgAndLevelDtl: List[(String, String, String)])(implicit conf: Configuration, fc: FrameworkContext) = {
+    val zippedRequests = for (request <- requests) yield {
+      val reqOrgAndLevel = reqOrgAndLevelDtl.filter(_._1 == request.request_id).headOption
+      processRequestEncryption(storageConfig, request, reqOrgAndLevel.getOrElse("", "", ""))
+    }
     updateRequests(zippedRequests)
   }
 
-  def saveRequestAsync(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): CompletableFuture[JobRequest] = {
+  def saveRequestAsync(storageConfig: StorageConfig, request: JobRequest, reqOrgAndLevel: (String, String, String))(implicit conf: Configuration, fc: FrameworkContext): CompletableFuture[JobRequest] = {
 
     CompletableFuture.supplyAsync(new Supplier[JobRequest]() {
       override def get() : JobRequest =  {
-        val res = CommonUtil.time(saveRequest(storageConfig, request))
+        val res = CommonUtil.time(saveRequest(storageConfig, request, reqOrgAndLevel))
         JobLogger.log("Request is zipped", Some(Map("requestId" -> request.request_id, "timeTakenForZip" -> res._1)), INFO)
         request
       }
@@ -131,15 +131,15 @@ trait OnDemandExhaustJob {
 
   }
 
-  def saveRequest(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): Boolean = {
-    updateRequest(processRequestEncryption(storageConfig, request))
+  def saveRequest(storageConfig: StorageConfig, request: JobRequest, reqOrgAndLevel: (String, String, String))(implicit conf: Configuration, fc: FrameworkContext): Boolean = {
+    updateRequest(processRequestEncryption(storageConfig, request, reqOrgAndLevel))
   }
 
-  def processRequestEncryption(storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): JobRequest = {
+  def processRequestEncryption(storageConfig: StorageConfig, request: JobRequest, reqOrgAndLevel: (String, String, String))(implicit conf: Configuration, fc: FrameworkContext): JobRequest = {
     val downloadURLs = CommonUtil.time(for (url <- request.download_urls.getOrElse(List())) yield {
       if (zipEnabled())
         try {
-          zipAndEncrypt(url, storageConfig, request)
+          zipAndPasswordProtect(url, storageConfig, request, null, reqOrgAndLevel._3)
           url.replace(".csv", ".zip")
         } catch {
           case ex: Exception => ex.printStackTrace();
@@ -160,60 +160,6 @@ trait OnDemandExhaustJob {
   }
 
   def canZipExceptionBeIgnored(): Boolean = true
-
-  @throws(classOf[Exception])
-  private def zipAndEncrypt(url: String, storageConfig: StorageConfig, request: JobRequest)(implicit conf: Configuration, fc: FrameworkContext): String = {
-
-    val path = Paths.get(url);
-    val storageService = fc.getStorageService(storageConfig.store, storageConfig.accountKey.getOrElse(""), storageConfig.secretKey.getOrElse(""));
-    val tempDir = AppConf.getConfig("spark_output_temp_dir") + request.request_id + "/"
-    val localPath = tempDir + path.getFileName;
-    fc.getHadoopFileUtil().delete(conf, tempDir);
-    val filePrefix = storageConfig.store.toLowerCase() match {
-      // $COVERAGE-OFF$ Disabling scoverage
-      case "s3" =>
-        CommonUtil.getS3File(storageConfig.container, "")
-      case "azure" =>
-        CommonUtil.getAzureFile(storageConfig.container, "", storageConfig.accountKey.getOrElse("azure_storage_key"))
-      case "gcloud" =>
-        CommonUtil.getGCloudFile(storageConfig.container, "")
-      // $COVERAGE-ON$ for case: local
-      case _ =>
-        storageConfig.fileName
-    }
-    val objKey = url.replace(filePrefix, "");
-    if (storageConfig.store.equals("local")) {
-      fc.getHadoopFileUtil().copy(filePrefix, localPath, conf)
-    }
-    // $COVERAGE-OFF$ Disabling scoverage
-    else {
-      storageService.download(storageConfig.container, objKey, tempDir, Some(false));
-    }
-    // $COVERAGE-ON$
-    val zipPath = localPath.replace("csv", "zip")
-    val zipObjectKey = objKey.replace("csv", "zip")
-    val zipLocalObjKey = url.replace("csv", "zip")
-
-    request.encryption_key.map(key => {
-      val zipParameters = new ZipParameters();
-      zipParameters.setEncryptFiles(true);
-      zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD); // AES encryption is not supported by default with various OS.
-      val zipFile = new ZipFile(zipPath, key.toCharArray());
-      zipFile.addFile(localPath, zipParameters)
-    }).getOrElse({
-      new ZipFile(zipPath).addFile(new File(localPath));
-    })
-    val resultFile = if (storageConfig.store.equals("local")) {
-      fc.getHadoopFileUtil().copy(zipPath, zipLocalObjKey, conf)
-    }
-    // $COVERAGE-OFF$ Disabling scoverage
-    else {
-      storageService.upload(storageConfig.container, zipPath, zipObjectKey, Some(false), Some(0), Some(3), None);
-    }
-    // $COVERAGE-ON$
-    fc.getHadoopFileUtil().delete(conf, tempDir);
-    resultFile;
-  }
 
   def markRequestAsFailed(request: JobRequest, failedMsg: String, completed_Batches: Option[String] = None): JobRequest = {
     request.status = "FAILED";

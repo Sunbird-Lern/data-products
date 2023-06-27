@@ -2,7 +2,6 @@ package org.sunbird.lms.exhaust.collection
 
 import com.datastax.spark.connector.cql.CassandraConnectorConf
 import org.apache.spark.SparkContext
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -20,13 +19,12 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
+import org.sunbird.core.util.DataSecurityUtil.{getOrgId, getPIIFieldDetails, getSecuredExhaustFile, getSecurityLevel}
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.Seq
-import scala.collection.immutable.List
 import scala.collection.mutable.ListBuffer
 
 
@@ -128,7 +126,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val searchFilter = modelParams.get("searchFilter").asInstanceOf[Option[Map[String, AnyRef]]];
     val collectionBatches = getCollectionBatches(batchId, batchFilter, searchFilter, custodianOrgId, "System");
     val storageConfig = getStorageConfig(config, AppConf.getConfig("collection.exhaust.store.prefix"))
-    val result: List[CollectionBatchResponse] = processBatches(userCachedDF, collectionBatches._2, storageConfig, None, None, List.empty);
+    val result: List[CollectionBatchResponse] = processBatches(userCachedDF, collectionBatches._2, storageConfig, None, None, List.empty, null, null, null, null);
     result.foreach(f => JobLogger.log("Batch Status", Some(Map("status" -> f.status, "batchId" -> f.batchId, "executionTime" -> f.execTime, "message" -> f.statusMsg, "location" -> f.file)), INFO));
     Metrics(totalRequests = Some(result.length), failedRequests = Some(result.count(x => x.status.toUpperCase() == "FAILED")), successRequests = Some(result.count(x => x.status.toUpperCase() == "SUCCESS")), duplicateRequests = Some(0))
   }
@@ -148,8 +146,16 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     JobLogger.log("The Request count details", Some(Map("Total Requests" -> requests.length, "filtered Requests" -> filteredRequests.length, "Duplicate Requests" -> dupRequestsList.length)), INFO)
 
     val requestsCompleted :ListBuffer[ProcessedRequest] = ListBuffer.empty
-
+    var reqOrgAndLevelDtl : List[(String, String, String)] = List()
     val result = for (request <- filteredRequests) yield {
+      JobLogger.log(s"executeOnDemand for channel= "+ request.requested_channel, None, INFO)
+      val orgId = request.requested_channel//getOrgId("", request.requested_channel)
+      val level = getSecurityLevel(jobId(), orgId)
+      val piiFields = getPIIFieldDetails(jobId(), orgId)
+      val csvColumns = modelParams.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+      JobLogger.log(s"executeOnDemand for url = $orgId and level = $level and channel= $request.requested_channel", None, INFO)
+      val reqOrgAndLevel = (request.request_id, orgId, level)
+      reqOrgAndLevelDtl :+= reqOrgAndLevel
       val updRequest: JobRequest = {
         try {
           val processedCount = if(requestsCompleted.isEmpty) 0 else requestsCompleted.count(f => f.channel.equals(request.requested_channel))
@@ -157,8 +163,12 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
           JobLogger.log("Channel details at executeOnDemand", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed batches" -> processedCount)), INFO)
 
           if (checkRequestProcessCriteria(processedCount, processedSize)) {
+            if(!validateCsvColumns(piiFields, csvColumns, level)) {
+              JobLogger.log("Request should have either of batchId, batchFilter, searchFilter or encrption key", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+              markRequestAsFailed(request, "Request Security Level is not matching with PII fields or csvColumns CSV columns configured. Please check.")
+            }
             if (validateRequest(request)) {
-              val res = processRequest(request, custodianOrgId, userCachedDF, storageConfig, requestsCompleted)
+              val res = processRequest(request, custodianOrgId, userCachedDF, storageConfig, requestsCompleted, orgId, level)
               requestsCompleted.++=(JSONUtils.deserialize[ListBuffer[ProcessedRequest]](res.processed_batches.getOrElse("[]")))
               JobLogger.log("The Request is processed. Pending zipping", Some(Map("requestId" -> request.request_id, "timeTaken" -> res.execution_time, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
               res
@@ -185,9 +195,9 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
           val dupUpdReq = markDuplicateRequest(req, updRequest)
           dupUpdReq
         }
-        saveRequests(storageConfig, res.toArray)(spark.sparkContext.hadoopConfiguration, fc)
+        saveRequests(storageConfig, res.toArray, reqOrgAndLevelDtl)(spark.sparkContext.hadoopConfiguration, fc)
       }
-      saveRequestAsync(storageConfig, updRequest)(spark.sparkContext.hadoopConfiguration, fc)
+      saveRequestAsync(storageConfig, updRequest, reqOrgAndLevel)(spark.sparkContext.hadoopConfiguration, fc)
     }
     CompletableFuture.allOf(result: _*) // Wait for all the async tasks to complete
     val completedResult = result.map(f => f.join()); // Get the completed job requests
@@ -195,7 +205,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   }
 
   def markDuplicateRequest(request: JobRequest, referenceRequest: JobRequest): JobRequest = {
-    request.status = referenceRequest.status;
+    request.status = referenceRequest.status
     request.download_urls = referenceRequest.download_urls
     request.execution_time = referenceRequest.execution_time
     request.dt_job_completed = referenceRequest.dt_job_completed
@@ -211,7 +221,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     else false
   }
 
-  def processRequest(request: JobRequest, custodianOrgId: String, userCachedDF: DataFrame, storageConfig: StorageConfig, processedRequests: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): JobRequest = {
+  def processRequest(request: JobRequest, custodianOrgId: String, userCachedDF: DataFrame, storageConfig: StorageConfig, processedRequests: ListBuffer[ProcessedRequest], orgId: String, level: String)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): JobRequest = {
     val batchLimit: Int = AppConf.getConfig("data_exhaust.batch.limit.per.request").toInt
     val collectionConfig = JSONUtils.deserialize[CollectionConfig](request.request_data)
     val batches = if (collectionConfig.batchId.isDefined) List(collectionConfig.batchId.get) else collectionConfig.batchFilter.getOrElse(List[String]())
@@ -225,7 +235,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       val collectionBatchesData = collectionBatches._2.filter(p=> !completedBatchIds.contains(p.batchId))
       //SB-26292: The request should fail if the course is retired with err_message: The request is made for retired collection
       if(collectionBatches._2.size > 0) {
-        val result = CommonUtil.time(processBatches(userCachedDF, collectionBatchesData, storageConfig, Some(request.request_id), Some(request.requested_channel), processedRequests.toList))
+        val result = CommonUtil.time(processBatches(userCachedDF, collectionBatchesData, storageConfig, Some(request.request_id), Some(request.requested_channel), processedRequests.toList, level, orgId, request.encryption_key, request))
         val response = result._2;
         val failedBatches = response.filter(p => p.status.equals("FAILED"))
         val processingBatches= response.filter(p => p.status.equals("PROCESSING"))
@@ -329,7 +339,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     }
   }
 
-  def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest] )(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
+  def processBatches(userCachedDF: DataFrame, collectionBatches: List[CollectionBatch], storageConfig: StorageConfig, requestId: Option[String], requestChannel: Option[String], processedRequests: List[ProcessedRequest], level:String, orgId:String, encryptionKey:Option[String], jobRequest: JobRequest)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): List[CollectionBatchResponse] = {
 
     var processedCount = if(processedRequests.isEmpty) 0 else processedRequests.count(f => f.channel.equals(requestChannel.getOrElse("")))
     var processedSize = if(processedRequests.isEmpty) 0 else processedRequests.filter(f => f.channel.equals(requestChannel.getOrElse(""))).map(f => f.fileSize).sum
@@ -357,6 +367,10 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
             val fileFormat = "csv"
             val filePath = getFilePath(batch.batchId, requestId.getOrElse(""))
             val files = reportDF.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
+            JobLogger.log(s"processBatches filePath: $filePath", Some("filePath" -> filePath), INFO)
+            files.foreach(file => getSecuredExhaustFile(level, orgId, requestChannel.get, file, encryptionKey.getOrElse(""), storageConfig, jobRequest))
+            //getSecuredExhaustFile(level, orgId, requestChannel.get, url, encryptionKey.getOrElse(""), storageConfig)
+
             newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)
             CollectionBatchResponse(batch.batchId, filePath + "." + fileFormat, "SUCCESS", "", res._1, newFileSize);
           } catch {
