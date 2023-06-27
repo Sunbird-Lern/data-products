@@ -19,7 +19,7 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
-import org.sunbird.core.util.DataSecurityUtil.{getOrgId, getSecuredExhaustFile, getSecurityLevel}
+import org.sunbird.core.util.DataSecurityUtil.{getOrgId, getPIIFieldDetails, getSecuredExhaustFile, getSecurityLevel}
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
 import java.security.MessageDigest
@@ -151,6 +151,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
       JobLogger.log(s"executeOnDemand for channel= "+ request.requested_channel, None, INFO)
       val orgId = request.requested_channel//getOrgId("", request.requested_channel)
       val level = getSecurityLevel(jobId(), orgId)
+      val piiFields = getPIIFieldDetails(jobId(), orgId)
+      val csvColumns = modelParams.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
       JobLogger.log(s"executeOnDemand for url = $orgId and level = $level and channel= $request.requested_channel", None, INFO)
       val reqOrgAndLevel = (request.request_id, orgId, level)
       reqOrgAndLevelDtl :+= reqOrgAndLevel
@@ -161,6 +163,10 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
           JobLogger.log("Channel details at executeOnDemand", Some(Map("channel" -> request.requested_channel, "file size" -> processedSize, "completed batches" -> processedCount)), INFO)
 
           if (checkRequestProcessCriteria(processedCount, processedSize)) {
+            if(!validateCsvColumns(piiFields, csvColumns, level)) {
+              JobLogger.log("Request should have either of batchId, batchFilter, searchFilter or encrption key", Some(Map("requestId" -> request.request_id, "remainingRequest" -> totalRequests.getAndDecrement())), INFO)
+              markRequestAsFailed(request, "Request Security Level is not matching with PII fields or csvColumns CSV columns configured. Please check.")
+            }
             if (validateRequest(request)) {
               val res = processRequest(request, custodianOrgId, userCachedDF, storageConfig, requestsCompleted, orgId, level)
               requestsCompleted.++=(JSONUtils.deserialize[ListBuffer[ProcessedRequest]](res.processed_batches.getOrElse("[]")))

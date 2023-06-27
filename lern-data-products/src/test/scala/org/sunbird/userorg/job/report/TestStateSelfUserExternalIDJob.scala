@@ -1,11 +1,12 @@
 package org.sunbird.userorg.job.report
 
 
+import okhttp3.mockwebserver.{Dispatcher, MockResponse, MockWebServer, RecordedRequest}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.ekstep.analytics.framework.util.JSONUtils.serialize
-import org.ekstep.analytics.framework.util.{HadoopFileUtil}
-import org.ekstep.analytics.framework.{FrameworkContext}
+import org.ekstep.analytics.framework.util.{HadoopFileUtil, JSONUtils}
+import org.ekstep.analytics.framework.FrameworkContext
 import org.scalamock.matchers.Matchers
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.{EmbeddedCassandra, HTTPResponse}
@@ -18,21 +19,38 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with M
   var orgDF: DataFrame = _
   var reporterMock: BaseReportsJob = mock[BaseReportsJob]
   val sunbirdKeyspace = "sunbird"
+  val tenantPrefWebserver = new MockWebServer()
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     spark = getSparkSession();
     EmbeddedCassandra.loadData("src/test/resources/reports/user_self_test_data.cql") // Load test data in embedded cassandra server
+    //Staring MockWebServer
+    val tenantPrefDispatcher: Dispatcher = new Dispatcher() {
+      @throws[InterruptedException]
+      override def dispatch(request: RecordedRequest): MockResponse = {
+        val body = new String(request.getBody.readByteArray())
+        val jsonBody = JSONUtils.deserialize[Map[String, AnyRef]](body)
+        val requestBody = jsonBody.getOrElse("request", Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]].getOrElse("key", "")
+        (request.getPath, request.getMethod, requestBody) match {
+          case ("/private/v2/org/preferences/read", "POST", "dataSecurityPolicy") =>
+            new MockResponse().setHeader("Content-Type", "application/json").setResponseCode(200).setBody("""{"id":".private.v2.org.preferences.read","ver":"private","ts":"2023-05-26 16:25:42:913+0000","params":{"resmsgid":"976058ce-570a-4c56-a5f9-623141bedd4a","msgid":"976058ce-570a-4c56-a5f9-623141bedd4a","err":null,"status":"SUCCESS","errmsg":null},"responseCode":"OK","result":{"response":{"updatedBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","data":{"level":"PLAIN_DATASET","dataEncrypted":"No","comments":"Data is not encrypted","job":{"progress-exhaust":{"level":"PUBLIC_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"response-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"userinfo-exhaust":{"level":"PASSWORD_PROTECTED_DATASET","dataEncrypted":"No","comments":"Password protected file."},"program-user-exhaust":{"level":"TEXT_KEY_ENCRYPTED_DATASET","dataEncrypted":"Yes","comments":"Text key Encrypted File"}},"securityLevels":{"PLAIN_DATASET":"Data is present in plain text/zip. Generally applicable to open datasets.","PASSWORD_PROTECTED_DATASET":"Password protected zip file. Generally applicable to non PII data sets but can contain sensitive information which may not be considered open.","TEXT_KEY_ENCRYPTED_DATASET":"Data encrypted with a user provided encryption key. Generally applicable to non PII data but can contain sensitive information which may not be considered open.","PUBLIC_KEY_ENCRYPTED_DATASET":"Data encrypted via an org provided public/private key. Generally applicable to all PII data exhaust."}},"createdBy":"fbe926ac-a395-40e4-a65b-9b4f711d7642","updatedOn":1684825029544,"createdOn":1682501851315,"orgId":"default","key":"dataSecurityPolicy"}}}""")
+        }
+      }
+    }
+    tenantPrefWebserver.setDispatcher(tenantPrefDispatcher)
+    tenantPrefWebserver.start(9090)
   }
   
   override def afterAll() : Unit = {
     super.afterAll();
     (new HadoopFileUtil()).delete(spark.sparkContext.hadoopConfiguration, "src/test/resources/admin-user-reports")
+    tenantPrefWebserver.shutdown()
   }
 
   //Created data : channels ApSlug and OtherSlug contains validated users created against blocks,districts and state
   //Only TnSlug doesn't contain any validated users
-  ignore /*"StateSelfUserExternalID"*/ should "generate reports" in {
+  "StateSelfUserExternalID" should "generate reports" in {
     implicit val fc = new FrameworkContext()
     val reportDF = StateAdminReportJob.generateExternalIdReport()(spark, fc)
     assert(reportDF.count() === 2);
@@ -77,14 +95,11 @@ class TestStateSelfUserExternalIDJob extends BaseReportSpec with Matchers with M
     user2.getAs[String]("Block") should be ("Gulbargablock1")
 
   }
-  
-  ignore /*"StateSelfUserExternalIDWithZip"*/ should "execute with zip failed to generate" in {
+
+  "StateSelfUserExternalIDWithZip" should "execute with zip failed to generate" in {
     implicit val fc = new FrameworkContext()
     try {
       val l3LevelRespponse = createHTTPResponse("TEXT_KEY_ENCRYPTED_DATASET")
-      import org.sunbird.core.util.HttpUtil
-        val httpMock = mock[HttpUtil]
-      (httpMock.post(_: String, _: String, _: Map[String, String])).expects(*, *, *).returning(l3LevelRespponse).anyNumberOfTimes()
       val reportDF = StateAdminReportJob.generateExternalIdReport()(spark, fc)
     } catch {
       case ex: Exception => assert(ex.getMessage === "Self-Declared user level zip generation failed with exit code 127");
