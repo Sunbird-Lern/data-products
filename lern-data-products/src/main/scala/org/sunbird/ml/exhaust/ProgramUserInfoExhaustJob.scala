@@ -13,6 +13,11 @@ import org.sunbird.lms.exhaust.collection.{ProcessedRequest, UDFUtils}
 
 import scala.collection.mutable.ListBuffer
 
+  /**
+  * This job provides PII user data for a given program in manage-learn. It retrieves program enrollment data from Cassandra,
+   * performs transformations and joins with user consent data by getting the PII user related data from Redis which is in encrypted format.
+  */
+
 case class RequestBody(`type`: String, `params`: Map[String, AnyRef])
 
 object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
@@ -28,6 +33,10 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
 
   override def getReportKey() = "programuserinfo";
 
+  /**
+   * This function validates the job request by checking if it meets certain conditions.
+   * It returns a Boolean value indicating whether the request is valid or not.
+   */
   override def validateRequest(request: JobRequest): Boolean = {
     if (super.validateRequest(request)) {
       if (request.encryption_key.isDefined && !(Option(request.request_data).isEmpty)) true else false;
@@ -36,6 +45,10 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
     }
   }
 
+  /**
+   * This function processes the program based on the given job request.
+   * It performs various operations on the program enrollment data and returns the resulting DataFrame.
+   */
   override def processProgram(request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest])(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): DataFrame = {
     markRequestAsProcessing(request)
 
@@ -152,6 +165,10 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
     }
   }
 
+  /**
+   * This function queries the program enrollment data from Cassandra based on the provided filters.
+   * It selects the specified columns and expands the user_locations array column. It returns the resulting DataFrame.
+   */
   def getProgramEnrolment(filters: String, cols: List[String], entityCol:List[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
     JobLogger.log("Program Enrollment Cassandra Table is being queried", None, INFO)
     import spark.implicits._
@@ -171,6 +188,9 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
     if (persist) df.persist() else df
   }
 
+  /**
+   * This function retrieves user consent data from Cassandra based on the provided filters.
+   */
   def getUserConsent(requestFilters: List[Map[String, AnyRef]])(implicit spark: SparkSession): DataFrame = {
     val usrConsentFilters = requestFilters.find(f => f("table_name") == "user_consent").getOrElse(Map())
     //    var userConsentDFFinal: List[DataFrame] = usrConsentFilters.filter(f => f("table_name") == "user_consent").map(f3 => {
