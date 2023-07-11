@@ -188,7 +188,7 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
   }
 
   /**
-   * This function retrieves user consent data from Cassandra based on the provided filters.
+   * This function retrieves user consent data from Cassandra based on the provided filters. 
    */
   def getUserConsent(requestFilters: List[Map[String, AnyRef]])(implicit spark: SparkSession): DataFrame = {
     val usrConsentFilters = requestFilters.find(f => f("table_name") == "user_consent").getOrElse(Map())
