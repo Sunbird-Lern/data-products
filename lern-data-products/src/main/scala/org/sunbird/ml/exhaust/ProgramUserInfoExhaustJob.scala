@@ -155,9 +155,16 @@ object ProgramUserInfoExhaustJob extends BaseMLExhaustJob with Serializable {
   def getProgramEnrolment(filters: String, cols: List[String], entityCol:List[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
     JobLogger.log("Program Enrollment Cassandra Table is being queried", None, INFO)
     import spark.implicits._
+    /**
+     * Filters and selects specific columns from a DataFrame, and then expands and drops a nested column related to user locations.
+     */
     var df = loadData(programEnrolmentDBSettings, cassandraFormat, new StructType())
       .where(s"""$filters""").select(cols.head, cols.tail: _*)
     df = df.select($"*", explode($"user_locations")).drop("user_locations")
+    /**
+     * Performs grouping, pivoting, and column manipulation operations on a DataFrame
+     * to transform it based on specified columns and entities.
+     */
     val enrollCols: List[String] = cols.filter(_ != "user_locations")
     val columns = enrollCols ++ entityCol
     df = df.groupBy(enrollCols.map(col): _*).pivot("key").agg(first("value"))
