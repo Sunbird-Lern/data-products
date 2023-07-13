@@ -10,15 +10,13 @@ import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.dispatcher.KafkaDispatcher
 import org.ekstep.analytics.framework.driver.BatchJobDriver.getMetricJson
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
-import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger, RestUtil}
+import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, StorageConfig}
-import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
-import org.sunbird.core.util.DataSecurityUtil.{getOrgId, getSecuredExhaustFile, getSecurityLevel}
-import org.sunbird.lms.exhaust.collection.{ProcessedRequest}
+import org.sunbird.core.util.DataSecurityUtil.{getSecuredExhaustFile, getSecurityLevel}
+import org.sunbird.lms.exhaust.collection.ProcessedRequest
 
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
@@ -185,7 +183,13 @@ trait BaseMLExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob 
 
   def transformData(resultData: (Long, DataFrame), request: JobRequest, storageConfig: StorageConfig, requestsCompleted: ListBuffer[ProcessedRequest], totalRequests: AtomicInteger, orgId: String, level: String)(implicit spark: SparkSession, fc: FrameworkContext, config: JobConfig): (JobRequest, StorageConfig) = {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]());
-    val reportDF1 = resultData._2
+    var reportDF1 = resultData._2
+    reportDF1 = if (reportDF1.columns.contains("Consent Provided")) {
+      reportDF1.withColumn("Consent Provided", col("Consent Provided").cast("string"))
+        .withColumn("Consent Provided", when(col("Consent Provided").isNotNull, when(col("Consent Provided") === "true", lit("Yes")).otherwise(lit("No"))).otherwise(col("Consent Provided")))
+    } else {
+      reportDF1
+    }
     val transformedDataDF: DataFrame = if (reportDF1.count() > 0) {
       //sort the dataframe
       JobLogger.log("Applying Sort to the Dataframe", None, INFO)
