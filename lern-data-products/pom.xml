@@ -19,7 +19,6 @@
 		<CLOUD_STORE_VERSION>1.4.6</CLOUD_STORE_VERSION>
 	</properties>
 
-
 	<repositories>
 		<repository>
 			<id>in-project</id>
