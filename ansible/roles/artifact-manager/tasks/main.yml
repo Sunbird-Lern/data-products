@@ -1,0 +1,15 @@
+- name: download artifact from azure storage
+  include_role:
+    name: "{{ cloud_service_provider }}-cloud-storage"
+    tasks_from: upload.yml
+  vars: ${${cloud_service_provider}_creds}
+  tags:
+    - upload
+
+- name: download artifact from azure storage
+  include_role:
+    name: "{{ cloud_service_provider }}-cloud-storage"
+    tasks_from: download.yml
+  vars: ${${cloud_service_provider}_creds}
+  tags:
+    - download
