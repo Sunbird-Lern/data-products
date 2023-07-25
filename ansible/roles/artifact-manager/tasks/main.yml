@@ -2,7 +2,10 @@
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: upload.yml
-  vars: ${{ azure_creds }}
+{{- with azure_creds }}
+  vars:
+{{ toYaml . | indent 4 }}
+{{- end }}
   tags:
     - upload
 
