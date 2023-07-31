@@ -12,6 +12,9 @@ node('build-slave') {
                 commit_hash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                 artifact_version = sh(script: "echo " + params.github_release_tag.split('/')[-1] + "_" + commit_hash + "_" + env.BUILD_NUMBER, returnStdout: true).trim()
                 echo "artifact_version: " + artifact_version
+                cloud_store_group = params.cloud_store_group
+                cloud_store_artifact = params.cloud_store_artifact
+                cloud_store_version = params.cloud_store_version
             }
         }
         stage('Pre-Build') {
@@ -25,7 +28,7 @@ node('build-slave') {
                 export JAVA_HOME=/usr/lib/jvm/jdk-11.0.2
                 export PATH=$JAVA_HOME/bin:$PATH
                 echo $(java -version)
-                mvn clean install -DskipTests -DCLOUD_STORE_GROUP_ID=org.sunbird -DCLOUD_STORE_ARTIFACT_ID=cloud-store-sdk_2.12 -DCLOUD_STORE_VERSION=1.4.6
+                mvn clean install -DskipTests -DCLOUD_STORE_GROUP_ID=${cloud_store_group} -DCLOUD_STORE_ARTIFACT_ID=${cloud_store_artifact} -DCLOUD_STORE_VERSION=${cloud_store_version}
                 '''
         }
         stage('Archive artifacts'){
