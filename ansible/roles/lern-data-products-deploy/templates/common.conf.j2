@@ -16,12 +16,22 @@ reports.storage.key.config="{{ dp_reports_storage_key_config }}"
 reports.storage.secret.config="{{ dp_reports_storage_secret_config }}"
 {% if dp_object_store_type == "azure" %}
 cloud_storage_type="azure"
-{% elif (dp_object_store_type == "cephs3" or dp_object_store_type == "s3") %}
-cloud_storage_type="s3"
-cloud_storage_endpoint="{{ s3_storage_endpoint | regex_replace('^[a-z]+://(.*)$', '\\1') }}"
+{% elif (dp_object_store_type == "cephs3" or dp_object_store_type == "s3" or dp_object_store_type == "oci") %}
+
+cloud_storage_endpoint="{{ s3_storage_endpoint | regex_replace('^[a-z]+://(.*)$', '\1') }}"
 cloud_storage_endpoint_with_protocol="{{ s3_storage_endpoint }}"
+
+{% if cloud_service_provider == "oci" %}
+cloud_storage_type="oci"
+storage.endpoint.config="{{ dp_storage_endpoint_config }}"
+oci_storage_key="{{ s3_storage_key }}"
+oci_storage_secret="{{ s3_storage_secret }}"
+{% else %}
+cloud_storage_type="s3"
 aws_storage_key="{{ s3_storage_key }}"
 aws_storage_secret="{{ s3_storage_secret }}"
+{% endif %}
+
 {% endif %}
 
 lp.contentmodel.versionkey="jd5ECm/o0BXwQCe8PfZY1NoUkB9HN41QjA80p22MKyRIcP5RW4qHw8sZztCzv87M"
@@ -112,7 +122,7 @@ azure {
 }
 
 ## Reports - Global config
-cloud.container.reports="reports"
+cloud.container.reports="{{reports_container}}"
 
 # course metrics container in azure
 course.metrics.cassandra.sunbirdKeyspace="sunbird"
@@ -252,9 +262,9 @@ etbtextbook.filename="ETB_textbook_data.csv"
 etb.dialcode.druid.length={{ etb_dialcode_list_druid_length }}
 
 
-druid.report.default.storage="azure"
+druid.report.default.storage="{{druid_storage_type}}"
 druid.report.date.format="yyyy-MM-dd"
-druid.report.default.container="report-verification"
+druid.report.default.container="{{cloud_storage_report_verfication_bucketname}}"
 
 ## Collection Exhaust Jobs Configuration -- Start ##
 
