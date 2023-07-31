@@ -12,8 +12,8 @@
 		<scoverage.plugin.version>1.4.11</scoverage.plugin.version>
 		<scala.maj.version>2.12</scala.maj.version>
 		<scala.version>2.12.10</scala.version>
-		<spark.maj.version>3.0</spark.maj.version>
-		<spark.version>3.1.0</spark.version>
+		<spark.maj.version>3.2</spark.maj.version>
+		<spark.version>3.2.1</spark.version>
 	</properties>
 
 
@@ -104,6 +104,14 @@
 					<groupId>org.apache.hadoop</groupId>
 					<artifactId>hadoop-client</artifactId>
 				</exclusion>
+	            <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client-runtime</artifactId>
+                </exclusion>
 				<exclusion>
 					<groupId>org.apache.xbean</groupId>
 					<artifactId>xbean-asm6-shaded</artifactId>
@@ -281,7 +289,7 @@
         <dependency>
 			<groupId>org.sunbird</groupId>
 			<artifactId>cloud-store-sdk_2.12</artifactId>
-			<version>1.4.4</version>
+			<version>1.4.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.microsoft.azure</groupId>
