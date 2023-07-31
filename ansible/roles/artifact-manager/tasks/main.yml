@@ -1,13 +1,12 @@
-- name: download artifact from azure storage
+- name: upload artifact from azure storage
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: upload.yml
-{{- with azure_creds }}
-  vars:
-{{ toYaml . | indent 4 }}
-{{- end }}
+  vars: ${${cloud_service_provider}_creds}
   tags:
     - upload
+  include_vars:
+    - {{ cloud_service_provider }}_creds.yml
 
 - name: download artifact from azure storage
   include_role:
