@@ -1,4 +1,5 @@
 blob_container_name: "{{ cloud_storage_artifacts_bucketname }}"
+container_public_access: "off"
 blob_file_name: "{{ artifact }}"
 local_file_or_folder_path: "{{ artifact_path }}"
 storage_account_name: "{{ cloud_artifact_storage_accountname }}"
