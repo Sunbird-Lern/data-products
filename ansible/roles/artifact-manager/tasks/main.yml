@@ -6,7 +6,7 @@
   tags:
     - upload
   include_vars:
-    - {{ cloud_service_provider }}_creds.yml
+    - "{{ cloud_service_provider }}_creds.yml"
 
 - name: download artifact from azure storage
   include_role:
