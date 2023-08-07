@@ -71,9 +71,9 @@ trait BaseReportsJob {
   def setReportsStorageConfiguration(sc: SparkContext, config: JobConfig) {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]())
     val store = modelParams.getOrElse("store", "local").asInstanceOf[String];
-    val reportsStorageAccountKey = modelParams.getOrElse("storageKeyConfig", "reports_storage_key").asInstanceOf[String];
-    val reportsStorageAccountSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
-    CloudStorageProviders.setSparkCSPConfigurations(sc, AppConf.getConfig("cloud_storage_type"), reportsStorageAccountKey, reportsStorageAccountSecret)
+    val storageAccKey = modelParams.getOrElse("storageKeyConfig", "reports_storage_key").asInstanceOf[String];
+    val storageAccSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
+    CloudStorageProviders.setSparkCSPConfigurations(sc, AppConf.getConfig("cloud_storage_type"), Option(storageAccKey), Option(storageAccSecret))
   }
 
   // $COVERAGE-ON$ Enabling scoverage for all other functions

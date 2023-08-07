@@ -50,7 +50,7 @@ trait BaseReportsJob {
     val store = modelParams.getOrElse("store", "local").asInstanceOf[String];
     val storageKey = modelParams.getOrElse("storageKeyConfig", "reports_storage_key").asInstanceOf[String];
     val storageSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
-    CloudStorageProviders.setSparkCSPConfigurations(spark.sparkContext, AppConf.getConfig("cloud_storage_type"), storageKey, storageSecret)
+    CloudStorageProviders.setSparkCSPConfigurations(spark.sparkContext, AppConf.getConfig("cloud_storage_type"), Option(storageKey), Option(storageSecret))
 
   }
 
