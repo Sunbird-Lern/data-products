@@ -14,6 +14,9 @@
 		<scala.version>2.12.10</scala.version>
 		<spark.maj.version>3.2</spark.maj.version>
 		<spark.version>3.2.1</spark.version>
+		<CLOUD_STORE_GROUP_ID>org.sunbird</CLOUD_STORE_GROUP_ID>
+		<CLOUD_STORE_ARTIFACT_ID>cloud-store-sdk_2.12</CLOUD_STORE_ARTIFACT_ID>
+		<CLOUD_STORE_VERSION>1.4.6</CLOUD_STORE_VERSION>
 	</properties>
 
 
@@ -316,14 +319,10 @@
 <!--            <version>1.0</version>-->
 <!--        </dependency>-->
         <dependency>
-			<groupId>org.sunbird</groupId>
-			<artifactId>cloud-store-sdk_2.12</artifactId>
-			<version>1.4.6</version>
+			<groupId>${CLOUD_STORE_GROUP_ID}</groupId>
+			<artifactId>${CLOUD_STORE_ARTIFACT_ID}</artifactId>
+			<version>${CLOUD_STORE_VERSION}</version>
 			<exclusions>
-				<exclusion>
-					<groupId>com.microsoft.azure</groupId>
-					<artifactId>azure-storage</artifactId>
-				</exclusion>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
@@ -335,18 +334,6 @@
 				<exclusion>
 					<groupId>org.apache.httpcomponents</groupId>
 					<artifactId>httpclient</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-storage</artifactId>
-			<version>3.0.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
