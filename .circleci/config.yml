@@ -42,7 +42,7 @@ jobs:
           name: Build analytics-core dependency jar
           command: |
             echo $(java -version)
-            cd sunbird-analytics-core && mvn install -DskipTests
+            cd sunbird-analytics-core && mvn install -DskipTests -DCLOUD_STORE_GROUP_ID=$CLOUD_STORE_GROUP_ID -DCLOUD_STORE_ARTIFACT_ID=$CLOUD_STORE_ARTIFACT_ID -DCLOUD_STORE_VERSION=$CLOUD_STORE_VERSION
       - run:
           name: Build core-data-products dependency jar
           command:   |
