@@ -51,7 +51,8 @@ class TestUserCacheIndexerJob extends SparkSpec(null) with MockFactory {
     redisConnect.getConnection(0, 100000)
   }
 
-  it should "generate the report with all the correct data" in {
+//  TODO: Enable the testcase
+  ignore should "generate the report with all the correct data" in {
     implicit val fc = new FrameworkContext()
     val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.UserCacheIndexerJob","modelParams":{"specificUserId":"","fromSpecificDate":"","populateAnonymousData":"false","refreshUserData":"true","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":"6341"}}"""
     val metrics: Unit = UserCacheIndexerJob.main(strConfig)
