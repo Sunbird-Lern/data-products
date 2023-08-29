@@ -107,3 +107,6 @@ tenant_preferance_read_private_service_endpoint: "{{sunbird_learner_service_url}
 
 cloud_storage_report_verfication_bucketname: "report-verification"
 dp_storage_endpoint_config: "{{s3_storage_endpoint}}"
+
+core_cassandra_read_consistency: "{{lp_cassandra_read_consistency | default('LOCAL_QUORUM')}}"
+core_cassandra_write_consistency: "{{lp_cassandra_write_consistency | default('LOCAL_QUORUM')}}"
