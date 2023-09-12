@@ -1,0 +1,10 @@
+---
+- name: upload file to gcloud storage
+  include: upload.yml
+  tags:
+    - file-upload
+
+- name: download a file from gcloud storage
+  include: download.yml
+  tags:
+    - file-download

@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sunbirded</groupId>
@@ -12,8 +12,11 @@
 		<scoverage.plugin.version>1.4.11</scoverage.plugin.version>
 		<scala.maj.version>2.12</scala.maj.version>
 		<scala.version>2.12.10</scala.version>
-		<spark.maj.version>3.0</spark.maj.version>
-		<spark.version>3.1.0</spark.version>
+		<spark.maj.version>3.2</spark.maj.version>
+		<spark.version>3.2.1</spark.version>
+		<CLOUD_STORE_GROUP_ID>org.sunbird</CLOUD_STORE_GROUP_ID>
+		<CLOUD_STORE_ARTIFACT_ID>cloud-store-sdk_2.12</CLOUD_STORE_ARTIFACT_ID>
+		<CLOUD_STORE_VERSION>1.4.6</CLOUD_STORE_VERSION>
 	</properties>
 
 
@@ -31,6 +34,16 @@
 	</repositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>com.fasterxml.jackson.module</groupId>
+			<artifactId>jackson-module-scala_${scala.maj.version}</artifactId>
+			<version>2.12.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.12.2</version>
+		</dependency>
 		<dependency>
 			<groupId>org.sunbird</groupId>
 			<artifactId>analytics-job-driver</artifactId>
@@ -66,9 +79,9 @@
 			<version>2.5.0</version>
 		</dependency>
 		<dependency>
-		  <groupId>net.lingala.zip4j</groupId>
-		  <artifactId>zip4j</artifactId>
-		  <version>2.6.2</version>
+			<groupId>net.lingala.zip4j</groupId>
+			<artifactId>zip4j</artifactId>
+			<version>2.6.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.typesafe.scala-logging</groupId>
@@ -116,6 +129,14 @@
 					<artifactId>hadoop-client</artifactId>
 				</exclusion>
 				<exclusion>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-client-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-client-runtime</artifactId>
+				</exclusion>
+				<exclusion>
 					<groupId>org.apache.xbean</groupId>
 					<artifactId>xbean-asm6-shaded</artifactId>
 				</exclusion>
@@ -128,16 +149,6 @@
 					<artifactId>jackson-module-scala_${scala.maj.version}</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.module</groupId>
-			<artifactId>jackson-module-scala_${scala.maj.version}</artifactId>
-			<version>2.12.2</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.12.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
@@ -203,18 +214,18 @@
 			<groupId>com.datastax.spark</groupId>
 			<artifactId>spark-cassandra-connector_${scala.maj.version}</artifactId>
 			<version>3.1.0</version>
-<!--			<exclusions>-->
-<!--				<exclusion>-->
-<!--					<groupId>com.datastax.oss</groupId>-->
-<!--					<artifactId>java-driver-shaded-guava</artifactId>-->
-<!--				</exclusion>-->
-<!--			</exclusions>-->
+			<!--			<exclusions>-->
+			<!--				<exclusion>-->
+			<!--					<groupId>com.datastax.oss</groupId>-->
+			<!--					<artifactId>java-driver-shaded-guava</artifactId>-->
+			<!--				</exclusion>-->
+			<!--			</exclusions>-->
 		</dependency>
-<!--		<dependency>-->
-<!--			<groupId>com.datastax.oss</groupId>-->
-<!--			<artifactId>java-driver-shaded-guava</artifactId>-->
-<!--			<version>25.1-jre</version>-->
-<!--		</dependency>-->
+		<!--		<dependency>-->
+		<!--			<groupId>com.datastax.oss</groupId>-->
+		<!--			<artifactId>java-driver-shaded-guava</artifactId>-->
+		<!--			<version>25.1-jre</version>-->
+		<!--		</dependency>-->
 		<!--
 		<dependency>
 			<groupId>com.datastax.spark</groupId>
@@ -297,29 +308,25 @@
 			<version>0.3.1</version>
 		</dependency>
 		<dependency>
-            <groupId>com.github.java-json-tools</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>2.2.8</version>
-            <scope>test</scope>
-        </dependency>
-<!--		<dependency>-->
-<!--			<groupId>org.sunbird</groupId>-->
-<!--			<artifactId>video-streaming</artifactId>-->
-<!--            <version>1.0</version>-->
-<!--        </dependency>-->
-        <dependency>
-			<groupId>org.sunbird</groupId>
-			<artifactId>cloud-store-sdk_2.12</artifactId>
-			<version>1.4.4</version>
+			<groupId>com.github.java-json-tools</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>2.2.8</version>
+			<scope>test</scope>
+		</dependency>
+		<!--		<dependency>-->
+		<!--			<groupId>org.sunbird</groupId>-->
+		<!--			<artifactId>video-streaming</artifactId>-->
+		<!--            <version>1.0</version>-->
+		<!--        </dependency>-->
+		<dependency>
+			<groupId>${CLOUD_STORE_GROUP_ID}</groupId>
+			<artifactId>${CLOUD_STORE_ARTIFACT_ID}</artifactId>
+			<version>${CLOUD_STORE_VERSION}</version>
 			<exclusions>
 				<exclusion>
-					<groupId>com.microsoft.azure</groupId>
-					<artifactId>azure-storage</artifactId>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-core</artifactId>
 				</exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.module</groupId>
 					<artifactId>jackson-module-scala_${scala.maj.version}.0-RC1</artifactId>
@@ -327,18 +334,6 @@
 				<exclusion>
 					<groupId>org.apache.httpcomponents</groupId>
 					<artifactId>httpclient</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-storage</artifactId>
-			<version>3.0.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -471,12 +466,12 @@
 				<configuration>
 					<transformers>
 						<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-	              			<resource>META-INF/services/org.jclouds.apis.ApiMetadata</resource>
-	            			</transformer>
-	            			<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-	              			<resource>META-INF/services/org.jclouds.providers.ProviderMetadata</resource>
-	            			</transformer>
-	            		</transformers>
+							<resource>META-INF/services/org.jclouds.apis.ApiMetadata</resource>
+						</transformer>
+						<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+							<resource>META-INF/services/org.jclouds.providers.ProviderMetadata</resource>
+						</transformer>
+					</transformers>
 					<filters>
 						<filter>
 							<artifact>*:*</artifact>
@@ -490,14 +485,14 @@
 					</filters>
 				</configuration>
 			</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
-            </plugin>
-        </plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>11</source>
+					<target>11</target>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 </project>

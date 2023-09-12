@@ -25,8 +25,8 @@ node('build-slave') {
                 export JAVA_HOME=/usr/lib/jvm/jdk-11.0.2
                 export PATH=$JAVA_HOME/bin:$PATH
                 echo $(java -version)
-                mvn clean install -DskipTests
                 '''
+            sh "cd lern-data-products;mvn clean install -DskipTests -DCLOUD_STORE_GROUP_ID=${params.cloud_store_group_id} -DCLOUD_STORE_ARTIFACT_ID=${params.cloud_store_artifact_id} -DCLOUD_STORE_VERSION=${params.cloud_store_version}"
         }
         stage('Archive artifacts'){
             sh """

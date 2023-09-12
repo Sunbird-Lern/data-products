@@ -1,0 +1,6 @@
+local_file_or_folder_path: "{{ artifact_path }}"
+s3_bucket_name: "{{ cloud_storage_artifacts_bucketname }}"
+s3_path: "{{ artifact }}"
+aws_default_region: "{{ cloud_public_storage_region }}"
+aws_access_key_id: "{{ cloud_artifact_storage_accountname }}"
+aws_secret_access_key: "{{ cloud_artifact_storage_secret }}"
