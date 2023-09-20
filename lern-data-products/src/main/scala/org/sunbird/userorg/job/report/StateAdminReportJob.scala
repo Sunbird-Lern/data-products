@@ -27,6 +27,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     val container = AppConf.getConfig("cloud.container.reports")
     val objectKey = AppConf.getConfig("admin.metrics.cloud.objectKey")
     val storageConfig = getStorageConfig(container, objectKey);
+    val projectName = AppConf.getConfig("sunbird_instance_name")
     
     //$COVERAGE-OFF$ Disabling scoverage for main and execute method
     def name(): String = "StateAdminReportJob"
@@ -152,7 +153,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val resultDf = userExternalDecryptData.join(userDenormLocationDFWithCluster, userExternalDecryptData.col("userid") === userDenormLocationDFWithCluster.col("userid"), "left_outer").
             
             select(col("Name"),
-                userExternalDecryptData.col("userid").as("Diksha UUID"),
+                userExternalDecryptData.col("userid").as(s"$projectName UUID"),
                 when(userDenormLocationDFWithCluster.col("state").isNotNull, userDenormLocationDFWithCluster.col("state")).otherwise(lit("")).as("State"),
                 when(userDenormLocationDFWithCluster.col("district").isNotNull, userDenormLocationDFWithCluster.col("district")).otherwise(lit("")).as("District"),
                 when(userDenormLocationDFWithCluster.col("block").isNotNull, userDenormLocationDFWithCluster.col("block")).otherwise(lit("")).as("Block"),
