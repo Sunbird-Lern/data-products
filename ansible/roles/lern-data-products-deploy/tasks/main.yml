@@ -5,9 +5,11 @@
     tasks_from: spark-cluster.yml
     apply:
       tags:
-        - always
+        - ensure-container
   tags:
-    - always
+    - dataproducts-spark-cluster
+    - lern-dataproducts-spark-cluster
+    - framework-spark-cluster
 
 - name: Copy Core Data Products
   copy: src={{ analytics_batch_module_artifact }} dest={{ analytics.home }}/models-{{ model_version }}

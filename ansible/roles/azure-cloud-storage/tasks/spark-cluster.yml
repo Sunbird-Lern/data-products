@@ -1,7 +1,7 @@
 - name: Ensure azure blob storage container exists
   command: az storage container create --name {{ bucket }}
   tags:
-    - always
+    - ensure-container
 
 - name: Copy Core Data Products to azure blob
   command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/{{ analytics_batch_module_artifact }} -f {{ analytics.home }}/models-{{ model_version }}/{{ analytics_batch_module_artifact }}
