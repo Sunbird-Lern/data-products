@@ -3,9 +3,7 @@
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - ensure-container
+    tags: ensure-container
   tags:
     - dataproducts-spark-cluster
     - lern-dataproducts-spark-cluster
@@ -20,9 +18,7 @@
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - dataproducts-spark-cluster
+    tags: dataproducts-spark-cluster
   tags:
     - dataproducts-spark-cluster
 
@@ -36,9 +32,7 @@
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - lern-dataproducts-spark-cluster
+    tags: lern-dataproducts-spark-cluster
   tags:
     - lern-dataproducts-spark-cluster    
 
@@ -51,9 +45,7 @@
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - framework-spark-cluster
+    tags: framework-spark-cluster
   tags:
     - framework-spark-cluster
 

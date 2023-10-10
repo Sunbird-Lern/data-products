@@ -10,7 +10,7 @@
   tags:
     - dataproducts-spark-cluster
 
-- name: Copy Ed Data Products to azure blob
+- name: Copy LERN Data Products to azure blob
   command: az storage blob upload --overwrite -c {{ bucket }} --name models-{{ model_version }}/lern-data-products-1.0.jar -f {{ analytics.home }}/models-{{ model_version }}/lern-data-products-1.0/lern-data-products-1.0.jar
   async: 3600
   poll: 10
