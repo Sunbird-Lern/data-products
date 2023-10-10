@@ -14,12 +14,10 @@ storage.key.config="{{ dp_storage_key_config }}"
 storage.secret.config="{{ dp_storage_secret_config }}"
 reports.storage.key.config="{{ dp_reports_storage_key_config }}"
 reports.storage.secret.config="{{ dp_reports_storage_secret_config }}"
-cloud_storage_type="{{dp_object_store_type}}"
+cloud_storage_type="{{cloud_service_provider}}"
 
-cloud_storage_endpoint="{{ s3_storage_endpoint | regex_replace('^[a-z]+://(.*)$', '\1') }}"
-cloud_storage_endpoint_with_protocol="{{ s3_storage_endpoint }}"
-
-lp.contentmodel.versionkey="jd5ECm/o0BXwQCe8PfZY1NoUkB9HN41QjA80p22MKyRIcP5RW4qHw8sZztCzv87M"
+cloud_storage_endpoint="{{ cloud_private_storage_endpoint | regex_replace('^[a-z]+://(.*)$', '\1') }}"
+cloud_storage_endpoint_with_protocol="{{ cloud_private_storage_endpoint }}"
 
 # Joblog Kafka appender config for cluster execution
 log.appender.kafka.enable="false"
