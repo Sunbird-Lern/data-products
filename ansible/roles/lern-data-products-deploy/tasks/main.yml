@@ -3,8 +3,6 @@
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: spark-cluster.yml
-    apply:
-      tags: ensure-container
   tags:
     - dataproducts-spark-cluster
     - lern-dataproducts-spark-cluster
@@ -15,43 +13,16 @@
   tags:
     - dataproducts
 
-- name: Copy Core Data Products
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags: dataproducts-spark-cluster
-  tags:
-    - dataproducts-spark-cluster
-
-- name: Unarchive Ed Data Products
+- name: Unarchive LERN Data Products
   become: yes
   unarchive: src={{ playbook_dir}}/{{ analytics_ed_dataporducts_artifact }} dest={{ analytics.home }}/models-{{ model_version }} copy=yes group={{ analytics_group }} owner={{ analytics_user }}
   tags:
     - lern-dataproducts
 
-- name: Copy LERN Data Products
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags: lern-dataproducts-spark-cluster
-  tags:
-    - lern-dataproducts-spark-cluster    
-
 - name: Copy Framework Library
   copy: src={{ analytics_core_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
   tags:
     - framework
-
-- name: Copy Analytics Framework related libraries
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags: framework-spark-cluster
-  tags:
-    - framework-spark-cluster
 
 - name: Copy Scruid Library
   copy: src={{ scruid_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
