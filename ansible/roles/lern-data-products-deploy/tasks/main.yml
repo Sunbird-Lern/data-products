@@ -54,7 +54,7 @@
   tags:
     - framework-spark-cluster
 
-- name: Ensure the storage container exists
+- name: Run spark cluster tasks
   include_role:
     name: "{{ cloud_service_provider }}-cloud-storage"
     tasks_from: spark-cluster.yml
