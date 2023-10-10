@@ -1,13 +1,4 @@
 ## Data products deployment ##
-- name: Ensure the storage container exists
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-  tags:
-    - dataproducts-spark-cluster
-    - lern-dataproducts-spark-cluster
-    - framework-spark-cluster
-
 - name: Copy Core Data Products
   copy: src={{ analytics_batch_module_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
   tags:
@@ -62,7 +53,16 @@
     line: 'log.appender.kafka.enable="true"'
   tags:
     - framework-spark-cluster
-    
+
+- name: Ensure the storage container exists
+  include_role:
+    name: "{{ cloud_service_provider }}-cloud-storage"
+    tasks_from: spark-cluster.yml
+  tags:
+    - dataproducts-spark-cluster
+    - lern-dataproducts-spark-cluster
+    - framework-spark-cluster    
+
 - name: Copy log4j2 xml file
   template: src=log4j2.xml.j2 dest={{ analytics.home }}/models-{{ model_version }}/log4j2.xml mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags: [ dataproducts, framework, lern-dataproducts ]
