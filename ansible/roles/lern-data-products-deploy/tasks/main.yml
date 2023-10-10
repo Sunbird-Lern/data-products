@@ -1,59 +1,19 @@
 ## Data products deployment ##
-- name: Ensure the storage container exists
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - always
-  tags:
-    - always
-
 - name: Copy Core Data Products
   copy: src={{ analytics_batch_module_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
   tags:
     - dataproducts
 
-- name: Copy Core Data Products
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - dataproducts-spark-cluster
-  tags:
-    - dataproducts-spark-cluster
-
-- name: Unarchive Ed Data Products
+- name: Unarchive LERN Data Products
   become: yes
   unarchive: src={{ playbook_dir}}/{{ analytics_ed_dataporducts_artifact }} dest={{ analytics.home }}/models-{{ model_version }} copy=yes group={{ analytics_group }} owner={{ analytics_user }}
   tags:
     - lern-dataproducts
 
-- name: Copy LERN Data Products
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - lern-dataproducts-spark-cluster
-  tags:
-    - lern-dataproducts-spark-cluster    
-
 - name: Copy Framework Library
   copy: src={{ analytics_core_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
   tags:
     - framework
-
-- name: Copy Analytics Framework related libraries
-  include_role:
-    name: "{{ cloud_service_provider }}-cloud-storage"
-    tasks_from: spark-cluster.yml
-    apply:
-      tags:
-        - framework-spark-cluster
-  tags:
-    - framework-spark-cluster
 
 - name: Copy Scruid Library
   copy: src={{ scruid_artifact }} dest={{ analytics.home }}/models-{{ model_version }}
@@ -93,7 +53,16 @@
     line: 'log.appender.kafka.enable="true"'
   tags:
     - framework-spark-cluster
-    
+
+- name: Run spark cluster tasks
+  include_role:
+    name: "{{ cloud_service_provider }}-cloud-storage"
+    tasks_from: spark-cluster.yml
+  tags:
+    - dataproducts-spark-cluster
+    - lern-dataproducts-spark-cluster
+    - framework-spark-cluster    
+
 - name: Copy log4j2 xml file
   template: src=log4j2.xml.j2 dest={{ analytics.home }}/models-{{ model_version }}/log4j2.xml mode=755 owner={{ analytics_user }} group={{ analytics_group }}
   tags: [ dataproducts, framework, lern-dataproducts ]
