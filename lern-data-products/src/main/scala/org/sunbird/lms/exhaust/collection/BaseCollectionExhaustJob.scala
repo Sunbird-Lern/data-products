@@ -49,6 +49,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   private val userEnrolmentDBSettings = Map("table" -> "user_enrolments", "keyspace" -> AppConf.getConfig("sunbird.user.report.keyspace"), "cluster" -> "ReportCluster");
   val redisConnection =  new RedisConnect(AppConf.getConfig("sunbird.course.redis.host"), AppConf.getConfig("sunbird.course.redis.port").toInt)
   var jedis = redisConnection.getConnection(AppConf.getConfig("sunbird.course.redis.relationCache.id").toInt)
+  protected var reportColumnMapping: Map[String, String] = null
+  protected var reportColumnList : List[String] = null
 
   private val redisFormat = "org.apache.spark.sql.redis";
   val cassandraFormat = "org.apache.spark.sql.cassandra";
@@ -63,6 +65,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     implicit val jobConfig = JSONUtils.deserialize[JobConfig](config)
     implicit val spark: SparkSession = openSparkSession(jobConfig)
     implicit val frameworkContext: FrameworkContext = getReportingFrameworkContext()
+    reportColumnList = jobConfig.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+    reportColumnMapping = jobConfig.modelParams.get.getOrElse("columnMapping", List[String]()).asInstanceOf[Map[String, String]]
     init()
     try {
       val res = CommonUtil.time(execute());
@@ -104,9 +108,13 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val mode = modelParams.getOrElse("mode", "OnDemand").asInstanceOf[String];
 
     val custodianOrgId = getCustodianOrgId();
+    val userFrameworkFields = getFrameworkFields(config)
 
     val res = CommonUtil.time({
-      val userDF = getUserCacheDF(getUserCacheColumns(), persist = true)
+      var userDF = getUserCacheDF(getUserCacheColumns() ++ userFrameworkFields, persist = true)
+      userFrameworkFields.foreach(colName => {
+        userDF = userDF.withColumn(colName, UDFUtils.extractFromArrayString(col(colName)))
+      })
       (userDF.count(), userDF)
     })
     JobLogger.log("Time to fetch enrolment details", Some(Map("timeTaken" -> res._1, "count" -> res._2._1)), INFO)
@@ -436,6 +444,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
   def getUserCacheColumns(): Seq[String] = {
     Seq("userid", "state", "district", "rootorgid")
   }
+
+  def getFrameworkFields(config: JobConfig): Seq[String] = Seq()
 
   def getEnrolmentColumns() : Seq[String] = {
     Seq("batchid", "userid", "courseid")
