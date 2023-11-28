@@ -110,3 +110,6 @@ dp_storage_endpoint_config: "{{s3_storage_endpoint}}"
 
 core_cassandra_read_consistency: "{{lp_cassandra_read_consistency | default('LOCAL_QUORUM')}}"
 core_cassandra_write_consistency: "{{lp_cassandra_write_consistency | default('LOCAL_QUORUM')}}"
+
+domain_url: "{{proto}}://{{domain_name}}"
+framework_read_endpoint: "/api/framework/v1/read/"

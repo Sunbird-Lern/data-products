@@ -1,6 +1,5 @@
 package org.sunbird.userorg.job.report
 
-import com.google.gson.internal.LinkedTreeMap
 import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions.{col, collect_set, concat_ws, explode_outer, lit, lower, to_json, _}
