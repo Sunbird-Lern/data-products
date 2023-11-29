@@ -71,20 +71,28 @@ trait BaseReportsJob {
   def setReportsStorageConfiguration(sc: SparkContext, config: JobConfig) {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]())
     val store = modelParams.getOrElse("store", "local").asInstanceOf[String];
-    val storageAccKey = modelParams.getOrElse("storageKeyConfig", "reports_storage_key").asInstanceOf[String];
-    val storageAccSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
-    CloudStorageProviders.setSparkCSPConfigurations(sc, AppConf.getConfig("cloud_storage_type"), Option(storageAccKey), Option(storageAccSecret))
+    val storageKeyConfig = modelParams.getOrElse("storageKeyConfig", "").asInstanceOf[String];
+    val storageSecretConfig = modelParams.getOrElse("storageSecretConfig", "").asInstanceOf[String];
+
+    val storageKey = if (storageKeyConfig.nonEmpty) {
+      AppConf.getConfig(storageKeyConfig)
+    } else "reports_storage_key"
+    val storageSecret = if (storageSecretConfig.nonEmpty) {
+      AppConf.getConfig(storageSecretConfig)
+    } else "reports_storage_secret"
+    CloudStorageProviders.setSparkCSPConfigurations(sc, AppConf.getConfig("cloud_storage_type"), Option(storageKey), Option(storageSecret))
   }
 
   // $COVERAGE-ON$ Enabling scoverage for all other functions
 
   def getStorageConfig(container: String, key: String, config: JobConfig = JSONUtils.deserialize[JobConfig]("""{}""")): org.ekstep.analytics.framework.StorageConfig = {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]())
-    val reportsStorageAccountKey = modelParams.getOrElse("storageKeyConfig", "reports_storage_key").asInstanceOf[String];
-    val reportsStorageAccountSecret = modelParams.getOrElse("storageSecretConfig", "reports_storage_secret").asInstanceOf[String];
+    val storageKeyConfig = modelParams.getOrElse("storageKeyConfig", "").asInstanceOf[String];
+    val storageSecretConfig = modelParams.getOrElse("storageSecretConfig", "").asInstanceOf[String];
+
     val provider = AppConf.getConfig("cloud_storage_type")
-    if (reportsStorageAccountKey != null && reportsStorageAccountSecret.nonEmpty) {
-      org.ekstep.analytics.framework.StorageConfig(provider, container, key, Option(reportsStorageAccountKey), Option(reportsStorageAccountSecret))
+    if (storageKeyConfig != null && storageSecretConfig.nonEmpty) {
+      org.ekstep.analytics.framework.StorageConfig(provider, container, key, Option(AppConf.getConfig(storageKeyConfig)), Option(AppConf.getConfig(storageSecretConfig)))
     } else {
       org.ekstep.analytics.framework.StorageConfig(provider, container, key, Option(provider), Option(provider));
     }
