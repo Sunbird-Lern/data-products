@@ -29,10 +29,6 @@ object UserInfoExhaustJob extends BaseCollectionExhaustJob with Serializable {
     Seq("userid", "username", "state", "district", "rootorgid", "orgname", "email", "phone", "block", "cluster", "usertype", "usersubtype", "schooludisecode", "schoolname")
   }
 
-  override def getFrameworkFields(config: JobConfig): Seq[String] = {
-    config.modelParams.get.getOrElse("userCacheCols", Seq[String]()).asInstanceOf[List[String]]
-  }
-
   override def validateRequest(request: JobRequest): Boolean = {
     if (super.validateRequest(request)) {
       if (request.encryption_key.isDefined) true else false;

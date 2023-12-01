@@ -65,8 +65,6 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     implicit val jobConfig = JSONUtils.deserialize[JobConfig](config)
     implicit val spark: SparkSession = openSparkSession(jobConfig)
     implicit val frameworkContext: FrameworkContext = getReportingFrameworkContext()
-    reportColumnList = jobConfig.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
-    reportColumnMapping = jobConfig.modelParams.get.getOrElse("columnMapping", List[String]()).asInstanceOf[Map[String, String]]
     init()
     try {
       val res = CommonUtil.time(execute());
@@ -109,6 +107,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
 
     val custodianOrgId = getCustodianOrgId();
     val userFrameworkFields = getFrameworkFields(config)
+    reportColumnList = config.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+    reportColumnMapping = config.modelParams.get.getOrElse("columnMapping", Map[String, String]()).asInstanceOf[Map[String, String]]
 
     val res = CommonUtil.time({
       var userDF = getUserCacheDF(getUserCacheColumns() ++ userFrameworkFields, persist = true)
@@ -445,7 +445,9 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     Seq("userid", "state", "district", "rootorgid")
   }
 
-  def getFrameworkFields(config: JobConfig): Seq[String] = Seq()
+  def getFrameworkFields(config: JobConfig): Set[String] = {
+    config.modelParams.get.getOrElse("userCacheCols", Set[String]()).asInstanceOf[Set[String]]
+  }
 
   def getEnrolmentColumns() : Seq[String] = {
     Seq("batchid", "userid", "courseid")
