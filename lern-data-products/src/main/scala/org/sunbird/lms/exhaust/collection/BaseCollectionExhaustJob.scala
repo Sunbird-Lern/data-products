@@ -445,8 +445,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     Seq("userid", "state", "district", "rootorgid")
   }
 
-  def getFrameworkFields(config: JobConfig): Set[String] = {
-    config.modelParams.get.getOrElse("userCacheCols", Set[String]()).asInstanceOf[Set[String]]
+  def getFrameworkFields(config: JobConfig): Seq[String] = {
+    config.modelParams.get.getOrElse("userCacheCols", Seq[String]()).asInstanceOf[Seq[String]]
   }
 
   def getEnrolmentColumns() : Seq[String] = {
