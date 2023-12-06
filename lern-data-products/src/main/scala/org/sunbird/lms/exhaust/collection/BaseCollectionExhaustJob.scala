@@ -26,10 +26,10 @@ import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable.ListBuffer
-
+import scala.languageFeature.dynamics
 
 case class UserData(userid: String, state: Option[String] = Option(""), district: Option[String] = Option(""), orgname: Option[String] = Option(""), firstname: Option[String] = Option(""), lastname: Option[String] = Option(""), email: Option[String] = Option(""),
-                    phone: Option[String] = Option(""), rootorgid: String, block: Option[String] = Option(""), schoolname: Option[String] = Option(""), schooludisecode: Option[String] = Option(""), board: Option[String] = Option(""), cluster: Option[String] = Option(""),
+                    phone: Option[String] = Option(""), rootorgid: String, block: Option[String] = Option(""), schoolname: Option[String] = Option(""), schooludisecode: Option[String] = Option(""), cluster: Option[String] = Option(""),
                     usertype: Option[String] = Option(""), usersubtype: Option[String] = Option(""))
 
 case class CollectionConfig(batchId: Option[String], searchFilter: Option[Map[String, AnyRef]], batchFilter: Option[List[String]])
@@ -603,13 +603,13 @@ object UDFUtils extends Serializable {
 
   val toJSON = udf[String, AnyRef](toJSONFun)
 
-  def extractFromArrayStringFun(board: String): String = {
+  def extractFromArrayStringFun(colValue: String): String = {
     try {
-      val str = JSONUtils.deserialize[AnyRef](board);
+      val str = JSONUtils.deserialize[AnyRef](colValue);
       str.asInstanceOf[List[String]].head
     } catch {
       case ex: Exception =>
-        board
+        colValue
     }
   }
 
