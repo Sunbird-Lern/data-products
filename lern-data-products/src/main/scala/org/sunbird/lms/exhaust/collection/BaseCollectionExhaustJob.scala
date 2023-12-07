@@ -6,7 +6,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.dispatcher.KafkaDispatcher
@@ -65,8 +65,6 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     implicit val jobConfig = JSONUtils.deserialize[JobConfig](config)
     implicit val spark: SparkSession = openSparkSession(jobConfig)
     implicit val frameworkContext: FrameworkContext = getReportingFrameworkContext()
-    reportColumnList = jobConfig.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
-    reportColumnMapping = jobConfig.modelParams.get.getOrElse("columnMapping", List[String]()).asInstanceOf[Map[String, String]]
     init()
     try {
       val res = CommonUtil.time(execute());
@@ -109,9 +107,13 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
 
     val custodianOrgId = getCustodianOrgId();
     val userFrameworkFields = getFrameworkFields(config)
+    reportColumnList = config.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+    reportColumnMapping = config.modelParams.get.getOrElse("columnMapping", Map[String, String]()).asInstanceOf[Map[String, String]]
+
+    val frameworkSchema = generateDFSchema(userFrameworkFields)
 
     val res = CommonUtil.time({
-      var userDF = getUserCacheDF(getUserCacheColumns() ++ userFrameworkFields, persist = true)
+      var userDF = getUserCacheDF(getUserCacheColumns() ++ userFrameworkFields, persist = true, frameworkSchema)
       userFrameworkFields.foreach(colName => {
         userDF = userDF.withColumn(colName, UDFUtils.extractFromArrayString(col(colName)))
       })
@@ -445,7 +447,9 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     Seq("userid", "state", "district", "rootorgid")
   }
 
-  def getFrameworkFields(config: JobConfig): Seq[String] = Seq()
+  def getFrameworkFields(config: JobConfig): Seq[String] = {
+    config.modelParams.get.getOrElse("userCacheCols", Seq[String]()).asInstanceOf[Seq[String]]
+  }
 
   def getEnrolmentColumns() : Seq[String] = {
     Seq("batchid", "userid", "courseid")
@@ -511,11 +515,19 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     if (persist) df.persist() else df
   }
 
-  def getUserCacheDF(cols: Seq[String], persist: Boolean)(implicit spark: SparkSession): DataFrame = {
+  def getUserCacheDF(cols: Seq[String], persist: Boolean, additionalFieldSchema: StructType)(implicit spark: SparkSession): DataFrame = {
     val schema = Encoders.product[UserData].schema
-    val df = loadData(userCacheDBSettings, redisFormat, schema).withColumn("username", concat_ws(" ", col("firstname"), col("lastname"))).select(cols.head, cols.tail: _*)
+    val df = loadData(userCacheDBSettings, redisFormat, StructType(schema.fields ++ additionalFieldSchema.fields)).withColumn("username", concat_ws(" ", col("firstname"), col("lastname"))).select(cols.head, cols.tail: _*)
       .repartition(AppConf.getConfig("exhaust.user.parallelism").toInt,col("userid"))
     if (persist) df.persist() else df
+  }
+
+  def generateDFSchema(cols: Seq[String]): StructType= {
+    var structFieldList: List[StructField] = List[StructField]()
+    cols.foreach(col => {
+      structFieldList = structFieldList :+ StructField(col, StringType, true)
+    })
+    StructType(structFieldList)
   }
 
   def filterUsers(collectionBatch: CollectionBatch, reportDF: DataFrame)(implicit spark: SparkSession): DataFrame = {

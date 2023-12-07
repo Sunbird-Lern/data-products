@@ -36,10 +36,6 @@ object ProgressExhaustJob extends BaseCollectionExhaustJob {
     Seq("userid", "state", "district", "cluster", "orgname", "schooludisecode", "schoolname", "block", "rootorgid", "usertype", "usersubtype")
   }
 
-  override def getFrameworkFields(config: JobConfig): Seq[String] = {
-    config.modelParams.get.getOrElse("userCacheCols", Seq[String]()).asInstanceOf[Seq[String]]
-  }
-  
   override def getEnrolmentColumns() : Seq[String] = {
     Seq("batchid", "userid", "courseid", "active", "certificates", "issued_certificates", "enrolleddate", "completedon", "contentstatus")
   }
