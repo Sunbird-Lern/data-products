@@ -113,3 +113,8 @@ core_cassandra_write_consistency: "{{lp_cassandra_write_consistency | default('L
 
 domain_url: "{{proto}}://{{domain_name}}"
 framework_read_endpoint: "/api/framework/v1/read/"
+
+redis:
+  user:
+    index: "12"
+    input_index: "4"
