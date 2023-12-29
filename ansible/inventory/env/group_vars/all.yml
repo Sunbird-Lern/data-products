@@ -118,6 +118,7 @@ redis:
   user:
     index: "12"
     input_index: "4"
+    backup_dir: "/mount/data/analytics/content-snapshot/anonymous-user-backup"
   max_pipeline_size: "100000"
   scan_count: "100000"
 
