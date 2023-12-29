@@ -118,3 +118,4 @@ redis:
   user:
     index: "12"
     input_index: "4"
+  max_pipeline_size: "100000"
