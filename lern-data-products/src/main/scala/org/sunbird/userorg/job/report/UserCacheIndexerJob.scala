@@ -41,7 +41,7 @@ object UserCacheIndexerJob extends IJob with Serializable {
         .builder()
         .appName("AppName")
         .config("spark.master", "local[*]")
-        .config("spark.cassandra.connection.host", config.getString("spark.cassandra.connection.host"))
+        .config("spark.cassandra.connection.host", config.getString("sunbird.user.cluster.host"))
         .config("spark.redis.host", jobConfig.modelParams.get.getOrElse("sparkRedisConnectionHost", "").toString)
         .config("spark.redis.port", jobConfig.modelParams.get.getOrElse("sparkUserDbRedisPort", "").toString)
         .config("spark.redis.db", redisIndex)
