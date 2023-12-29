@@ -274,3 +274,7 @@ sunbird_instance_name="{{ sunbird_installation | default('Sunbird')}}"
 redis.user.database.index="{{ redis.user.index }}"
 redis.user.input.index="{{ redis.user.input_index }}"
 redis.max.pipeline.size="{{ redis.max_pipeline_size }}"
+
+cassandra.read.timeoutMS="{{ cassandra.read_timeout }}"
+cassandra.query.retry.count="{{ cassandra.retry_count }}"
+cassandra.input.consistency.level="{{ core_cassandra_read_consistency }}"
