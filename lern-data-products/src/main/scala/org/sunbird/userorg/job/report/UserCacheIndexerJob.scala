@@ -8,6 +8,7 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.storage.StorageLevel
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
+import org.ekstep.analytics.framework.Level.INFO
 import org.sunbird.lms.exhaust.collection.CollectionDetails
 import redis.clients.jedis.Jedis
 
@@ -28,10 +29,11 @@ object UserCacheIndexerJob extends IJob with Serializable {
     JobLogger.init(name())
     JobLogger.start("Started executing", Option(Map("config" -> config, "model" -> name)))
     val jobConfig = JSONUtils.deserialize[JobConfig](jobDataConfig)
-    val specificUserId: String = null
-    val fromSpecificDate: String = jobConfig.modelParams.get.getOrElse("fromSpecificDate", "").toString
+    val specificUserId: String = if(jobConfig.modelParams.get.getOrElse("specificUserId", "null").toString != "null") jobConfig.modelParams.get("specificUserId").toString else null
+    val fromSpecificDate: String = if(jobConfig.modelParams.get.getOrElse("fromSpecificDate", "null").toString != "null") jobConfig.modelParams.get("fromSpecificDate").toString else null
     val populateAnonymousData: String = jobConfig.modelParams.get.getOrElse("populateAnonymousData", "false").toString // populate anonymous data
     val refreshUserData: String = jobConfig.modelParams.get.getOrElse("refreshUserData", "false").toString // refresh existing user data
+    JobLogger.log(s"params for the job: specificUserId: ${specificUserId} ::: fromSpecificDate: ${fromSpecificDate} ::: populateAnonymousData: ${populateAnonymousData} ::: refreshUserData: ${refreshUserData}", None, INFO)
     val sunbirdKeyspace = "sunbird"
     val complexFieldTypes = Array("array", "map")
     val fwReadApiUrl = config.getString("taxonomy.basePath") + config.getString("framework_read_api")
@@ -41,7 +43,7 @@ object UserCacheIndexerJob extends IJob with Serializable {
         .builder()
         .appName("AppName")
         .config("spark.master", "local[*]")
-        .config("spark.cassandra.connection.host", config.getString("spark.cassandra.connection.host"))
+        .config("spark.cassandra.connection.host", config.getString("sunbird.user.cluster.host"))
         .config("spark.redis.host", jobConfig.modelParams.get.getOrElse("sparkRedisConnectionHost", "").toString)
         .config("spark.redis.port", jobConfig.modelParams.get.getOrElse("sparkUserDbRedisPort", "").toString)
         .config("spark.redis.db", redisIndex)
@@ -433,6 +435,8 @@ object UserCacheIndexerJob extends IJob with Serializable {
 
       anonymousDataDF
     }
+
+    JobLogger.end(s"${name()} completed execution", "SUCCESS", Option(Map()))
   }
 
   def time[R](block: => R): (Long, R) = {

@@ -88,7 +88,7 @@ druid_report_url : "{{ proto}}://{{domain_name}}/api/data/v1/"
 druid_report_token : "Bearer {{ sunbird_api_auth_token }}"
 
 #redis multiprocess config
-user_port: 6381
+user_port: 6379
 
 exhaust_job_assessment_primary_category: "Practice Question Set"
 etb_dialcode_list_druid_length: 70
@@ -113,3 +113,15 @@ core_cassandra_write_consistency: "{{lp_cassandra_write_consistency | default('L
 
 domain_url: "{{proto}}://{{domain_name}}"
 framework_read_endpoint: "/api/framework/v1/read/"
+
+redis:
+  user:
+    index: "12"
+    input_index: "4"
+    backup_dir: "/mount/data/analytics/content-snapshot/anonymous-user-backup"
+  max_pipeline_size: "100000"
+  scan_count: "100000"
+
+cassandra:
+  read_timeout: "500000"
+  retry_count: "100"
