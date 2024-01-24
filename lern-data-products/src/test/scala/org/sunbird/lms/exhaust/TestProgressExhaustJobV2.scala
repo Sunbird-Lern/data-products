@@ -103,7 +103,6 @@ class TestProgressExhaustJobV2 extends BaseSpec with MockFactory with BaseReport
       && col("Batch Id") === "BatchId_batch-001" && col("User UUID") === "user-001")
     import org.apache.spark.sql.SparkSession
     val spark1 = SparkSession.builder.getOrCreate
-    import spark1.implicits._
 
     filteredDF.select("progress").rdd.map(r => r(0)).collect.toList.head should be("100")
     filteredDF.select("Total Score").rdd.map(r => r(0)).collect.toList.head should be("100%")
