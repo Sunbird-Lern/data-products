@@ -17,9 +17,8 @@ import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, Storag
 import org.ekstep.analytics.util.Constants
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.sunbird.core.util.{DecryptUtil, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest, OnDemandExhaustJob}
-import org.sunbird.core.util.DataSecurityUtil.{getOrgId, getPIIFieldDetails, getSecuredExhaustFile, getSecurityLevel}
+import org.sunbird.core.util.{DataSecurityUtil, DecryptUtil, RedisConnect}
 import org.sunbird.lms.exhaust.collection.ResponseExhaustJobV2.Question
 
 import java.security.MessageDigest
@@ -160,8 +159,8 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val result = for (request <- filteredRequests) yield {
       JobLogger.log(s"executeOnDemand for channel= "+ request.requested_channel, None, INFO)
       val orgId = request.requested_channel//getOrgId("", request.requested_channel)
-      val level = getSecurityLevel(jobId(), orgId)
-      val piiFields = getPIIFieldDetails(jobId(), orgId)
+      val level = DataSecurityUtil.getSecurityLevel(jobId(), orgId)
+      val piiFields = DataSecurityUtil.getPIIFieldDetails(jobId(), orgId)
       val csvColumns = modelParams.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
       JobLogger.log(s"executeOnDemand for url = $orgId and level = $level and channel= $request.requested_channel", None, INFO)
       val reqOrgAndLevel = (request.request_id, orgId, level)
@@ -378,7 +377,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
             val filePath = getFilePath(batch.batchId, requestId.getOrElse(""))
             val files = reportDF.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
             JobLogger.log(s"processBatches filePath: $filePath", Some("filePath" -> filePath), INFO)
-            files.foreach(file => getSecuredExhaustFile(level, orgId, requestChannel.get, file, encryptionKey.getOrElse(""), storageConfig, jobRequest))
+            files.foreach(file => DataSecurityUtil.getSecuredExhaustFile(level, orgId, requestChannel.get, file, encryptionKey.getOrElse(""), storageConfig, jobRequest))
             //getSecuredExhaustFile(level, orgId, requestChannel.get, url, encryptionKey.getOrElse(""), storageConfig)
 
             newFileSize = fc.getHadoopFileUtil().size(files.head, spark.sparkContext.hadoopConfiguration)

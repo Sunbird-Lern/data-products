@@ -8,8 +8,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.SparkSession
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.conf.AppConf
-import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, StorageConfig}
 import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, JobLogger}
+import org.ekstep.analytics.framework.{FrameworkContext, StorageConfig}
 import org.sunbird.core.exhaust.JobRequest
 import org.sunbird.core.util.EncryptFileUtil.encryptionFile
 

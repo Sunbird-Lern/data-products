@@ -1,9 +1,9 @@
 package org.sunbird.lms.job.report
 
 import okhttp3.mockwebserver.{Dispatcher, MockResponse, MockWebServer, RecordedRequest}
-import org.sunbird.core.util.BaseSpec
 import org.joda.time.DateTimeUtils
 import org.scalatest.BeforeAndAfterAll
+import org.sunbird.core.util.BaseSpec
 
 class BaseReportSpec extends BaseSpec with BeforeAndAfterAll {
 

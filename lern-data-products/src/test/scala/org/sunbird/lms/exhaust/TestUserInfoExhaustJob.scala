@@ -8,10 +8,10 @@ import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, StorageConfi
 import org.joda.time.DateTimeZone
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.scalamock.scalatest.MockFactory
-import org.sunbird.lms.job.report.BaseReportSpec
-import org.sunbird.core.util.{EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
 import org.sunbird.core.exhaust.{BaseReportsJob, JobRequest}
+import org.sunbird.core.util.{EmbeddedCassandra, EmbeddedPostgresql, RedisConnect}
 import org.sunbird.lms.exhaust.collection.UserInfoExhaustJob
+import org.sunbird.lms.job.report.BaseReportSpec
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
 
