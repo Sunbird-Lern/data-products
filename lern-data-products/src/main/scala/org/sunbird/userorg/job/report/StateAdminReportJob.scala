@@ -27,7 +27,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     val container = AppConf.getConfig("cloud.container.reports")
     val objectKey = AppConf.getConfig("admin.metrics.cloud.objectKey")
     val storageConfig = getStorageConfig(container, objectKey);
-    
     //$COVERAGE-OFF$ Disabling scoverage for main and execute method
     def name(): String = "StateAdminReportJob"
 
@@ -169,6 +168,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("userroororg").as("Root Org of user"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
+      JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
       val files = resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
       files.foreach(file => JobLogger.log(s"Self-Declared file path: "+file, None, INFO))
       val fileUrl = files(0)
@@ -221,4 +221,13 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
 
     val addUserType = udf[String, String, String](parseProfileTypeFunction)
 
+}
+
+object StateAdminReportJobMain extends App{
+  val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.lms.exhaust.collection.ProgressExhaustJob","modelParams":{"store":"local","mode":"OnDemand","batchFilters":["TPD"],"searchFilter":{},"sparkElasticsearchConnectionHost":"{{ sunbird_es_host }}","sparkRedisConnectionHost":"localhost","sparkUserDbRedisPort":6341,"sparkUserDbRedisIndex":"0","sparkCassandraConnectionHost":"localhost","fromDate":"","toDate":"","storageContainer":"","csvColumns":["courseid", "collectionName", "batchid", "batchName", "userid",  "state", "district", "orgname", "schooludisecode", "schoolname", "board", "block", "cluster", "usertype", "usersubtype", "enrolleddate", "completedon", "certificatestatus", "completionPercentage"]},"parallelization":8,"appName":"Progress Exhaust"}"""
+  val jobConfig = JSONUtils.deserialize[JobConfig](strConfig)
+  val modelParams = jobConfig.modelParams.getOrElse(Map[String, Option[AnyRef]]()).getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+  val filterColumns : List[String] = jobConfig.modelParams.get.getOrElse("csvColumns", List[String]()).asInstanceOf[List[String]]
+
+  StateAdminReportJob.main("""{"model":"Test"}""")
 }
