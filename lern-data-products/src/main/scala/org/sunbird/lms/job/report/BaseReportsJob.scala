@@ -3,7 +3,7 @@ package org.sunbird.lms.job.report
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.ekstep.analytics.framework.util.{CommonUtil, JSONUtils, CloudStorageProviders}
+import org.ekstep.analytics.framework.util.{CloudStorageProviders, CommonUtil, JSONUtils}
 import org.ekstep.analytics.framework.{FrameworkContext, JobConfig, JobContext}
 import org.sunbird.cloud.storage.conf.AppConf
 
@@ -89,7 +89,6 @@ trait BaseReportsJob {
     val modelParams = config.modelParams.getOrElse(Map[String, Option[AnyRef]]())
     val storageKeyConfig = modelParams.getOrElse("storageKeyConfig", "").asInstanceOf[String];
     val storageSecretConfig = modelParams.getOrElse("storageSecretConfig", "").asInstanceOf[String];
-
     val provider = AppConf.getConfig("cloud_storage_type")
     if (storageKeyConfig != null && storageSecretConfig.nonEmpty) {
       org.ekstep.analytics.framework.StorageConfig(provider, container, key, Option(AppConf.getConfig(storageKeyConfig)), Option(AppConf.getConfig(storageSecretConfig)))
