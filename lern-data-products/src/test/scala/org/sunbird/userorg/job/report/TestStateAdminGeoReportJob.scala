@@ -33,7 +33,11 @@ class TestStateAdminGeoReportJob extends SparkSpec(null) with MockFactory {
   ignore should "generate reports" in {
     implicit val fc = new FrameworkContext()
     val tempDir = AppConf.getConfig("admin.metrics.temp.dir")
-    val reportDF = StateAdminGeoReportJob.generateGeoReport()(spark, fc)
+    val modelParams = Map[String, AnyRef]("adhoc_scripts_virtualenv_dir" -> "/mount/venv",
+      "adhoc_scripts_output_dir" -> "/mount/portal_data")
+    val jobConfig = JobConfig(Fetcher("local", None, None), None, None, "StateAdminJob", Some(modelParams), None, Some(4), Some("TestExecuteDispatchder"))
+    val strConfig = JSONUtils.serialize(jobConfig)
+    val reportDF = StateAdminGeoReportJob.generateGeoReport(jobConfig)(spark, fc)
     assert(reportDF.count() === 12)
     //for geo report we expect these columns
     assert(reportDF.columns.contains("index") === true)
