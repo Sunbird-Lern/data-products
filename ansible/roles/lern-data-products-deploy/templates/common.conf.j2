@@ -33,6 +33,22 @@ spark.memory_fraction={{ spark.memory_fraction }}
 spark.storage_fraction={{ spark.storage_fraction }}
 spark.driver_memory="{{ spark.driver_memory }}"
 
+#Monitor Jobs
+monitor {
+  notification {
+    webhook_url = "{{ data_exhaust_webhook_url }}"
+    channel = "{{ data_exhaust_Channel }}"
+    token = "{{ data_exhaust_token }}"
+    slack = true
+        name = "{{ data_exhaust_name }}"
+  }
+}
+
+#App ID & Channel ID
+default.consumption.app.id="no_value"
+default.channel.id="in.ekstep"
+default.creation.app.id="no_value"
+
 ## Reports - Global config
 cloud.container.reports="{{reports_container}}"
 
@@ -59,6 +75,8 @@ assessment.metrics.supported.primaryCategories="{{ assessment_metric_primary_cat
 spark.sql.caseSensitive=true
 
 // Metric event config
+metric.producer.id="pipeline.monitoring"
+metric.producer.pid="dataproduct.metrics"
 push.metrics.kafka=true
 metric.kafka.broker="{{groups['processing-cluster-kafka']|join(':9092,')}}:9092"
 metric.kafka.topic="{{ env }}.prom.monitoring.metrics"
