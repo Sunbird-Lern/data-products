@@ -114,3 +114,5 @@ redis:
 cassandra:
   read_timeout: "500000"
   retry_count: "100"
+
+data_exhaust_token: ""
