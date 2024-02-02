@@ -210,6 +210,8 @@ object DataSecurityUtil {
           CommonUtil.getAzureFile(storageConfig.container, "", storageConfig.accountKey.getOrElse("azure_storage_key"))
         case "gcloud" =>
           CommonUtil.getGCloudFile(storageConfig.container, "")
+        case "oci" =>
+          CommonUtil.getS3File(storageConfig.container, "")
         // $COVERAGE-ON$ for case: local
         case _ =>
           val filePath = path.toString
