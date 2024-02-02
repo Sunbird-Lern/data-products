@@ -100,7 +100,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     }
 
     def getChannelWithRootOrgId(userExternalDecryptData: DataFrame) : scala.collection.Map[String, String] = {
-      val channelRootIdMap = userExternalDecryptData.rdd.map(r => (r.getAs[String]("channel"), r.getAs[String]("rootorgid"))).collectAsMap()
+      val channelRootIdMap = userExternalDecryptData.filter(col("channel").isNotNull && col("rootorgid").isNotNull).rdd.map(r => (r.getAs[String]("channel"), r.getAs[String]("rootorgid"))).collectAsMap()
       channelRootIdMap
     }
     
