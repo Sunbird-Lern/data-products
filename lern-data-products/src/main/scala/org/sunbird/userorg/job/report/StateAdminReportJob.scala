@@ -56,8 +56,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         // val userSelfDeclaredEncoder = Encoders.product[UserSelfDeclared].schema
         // loading user_declarations table details based on declared values and location details and appending org-external-id if present
         // val userSelfDeclaredDataDF = loadData(sparkSession, Map("table" -> "user_declarations", "keyspace" -> sunbirdKeyspace), Some(userSelfDeclaredEncoder))
-        val userSelfDeclaredDataDF = loadData(sparkSession, Map("table" -> "user_declarations", "keyspace" -> sunbirdKeyspace))/*.where(col("userid").equalTo("56c2d9a3-fae9-4341-9862-4eeeead2e9a1"))*/
-        val userConsentDataDF = loadData(sparkSession, Map("table" -> "user_consent", "keyspace" -> sunbirdKeyspace))/*.where(col("user_id").equalTo("56c2d9a3-fae9-4341-9862-4eeeead2e9a1"))*/
+        val userSelfDeclaredDataDF = loadData(sparkSession, Map("table" -> "user_declarations", "keyspace" -> sunbirdKeyspace))
+        val userConsentDataDF = loadData(sparkSession, Map("table" -> "user_consent", "keyspace" -> sunbirdKeyspace))
         val activeConsentDF = userConsentDataDF.where(col("status") === "ACTIVE" && lower(col("object_type")) ===  "organisation")
         val activeSelfDeclaredDF = userSelfDeclaredDataDF.join(activeConsentDF, userSelfDeclaredDataDF.col("userid") === activeConsentDF.col("user_id") && userSelfDeclaredDataDF.col("orgid") === activeConsentDF.col("consumer_id"), "left_semi").
            select(userSelfDeclaredDataDF.col("*"))
@@ -65,7 +65,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             col("userinfo").getItem("declared-school-name").as("declared-school-name"), col("userinfo").getItem("declared-school-udise-code").as("declared-school-udise-code"),col("userinfo").getItem("declared-ext-id").as("declared-ext-id")).drop("userinfo");
         val locationDF = locationData()
         //to-do later check if externalid is necessary not-null check is necessary
-        val orgExternalIdDf = loadOrganisationData().select("externalid","channel", "id","orgName","rootorgid").filter(col("channel").isNotNull)/*.where(col("id").equalTo("012500530695766016224"))*/
+        val orgExternalIdDf = loadOrganisationData().select("externalid","channel", "id","orgName","rootorgid").filter(col("channel").isNotNull)
         val userSelfDeclaredExtIdDF = userSelfDeclaredUserInfoDataDF.join(orgExternalIdDf, userSelfDeclaredUserInfoDataDF.col("orgid") === orgExternalIdDf.col("id"), "leftouter").
             select(userSelfDeclaredUserInfoDataDF.col("*"), orgExternalIdDf.col("*"))
         
@@ -176,9 +176,6 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
       val filePathWithoutCsv = fileUrl.substring(0,fileUrl.lastIndexOf("/")+1)
       val channelRootIdMap = getChannelWithRootOrgId(userExternalDecryptData)
       JobLogger.log(s"Self-Declared user objectKey:$objectKey", None, INFO)
-      channelRootIdMap.foreach(pair => {
-        JobLogger.log(s"channelRootIdMap channnel:: $pair._1 orgid:: $pair._2", None, INFO)(new String())
-      })
       channelRootIdMap.foreach(pair => {
         val level = getSecurityLevel("admin-user-reports", pair._2)
         getSecuredExhaustFile(level, pair._2, null, filePathWithoutCsv+pair._1+".csv", null, storageConfig, null)
