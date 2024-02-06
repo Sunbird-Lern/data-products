@@ -169,7 +169,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("userroororg").as("Root Org of user"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
-      JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
+      //JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
       val files = resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
       files.foreach(file => JobLogger.log(s"Self-Declared file path: "+file, None, INFO))
       val fileUrl = files(0)
