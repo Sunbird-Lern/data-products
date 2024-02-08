@@ -15,7 +15,6 @@ report_azure_storage_secret: "{{cloud_private_storage_secret}}"
 
 sunbird_api_auth_token: "{{ core_vault_sunbird_api_auth_token }}"
 metadata2_redis_host: "{{ groups['redis'][0] }}"
-searchServiceAuthorizationToken: "{{ sunbird_api_auth_token }}"
 
 # Learning Service organization and location search endpoints
 channelSearchServiceEndpoint: "{{ proto}}://{{domain_name}}/api/org/v1/search"
