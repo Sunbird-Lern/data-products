@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   sunbird-lern-dp-build:
     machine:
-      image: current
+      image: ubuntu-2004:202008-01
     steps:
       - checkout
       - run:
