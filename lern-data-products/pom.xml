@@ -297,16 +297,6 @@
 			<version>2.10.1</version>
 		</dependency>
 		<dependency>
-			<groupId>net.liftweb</groupId>
-			<artifactId>lift-json_${scala.maj.version}</artifactId>
-			<version>3.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.flyberrycapital</groupId>
-			<artifactId>scala-slack_${scala.maj.version}</artifactId>
-			<version>0.3.1</version>
-		</dependency>
-		<dependency>
 			<groupId>com.github.java-json-tools</groupId>
 			<artifactId>json-schema-validator</artifactId>
 			<version>2.2.8</version>
@@ -326,12 +316,6 @@
 			<systemPath>${project.basedir}/lib/scruid_2.12-2.5.0.jar</systemPath>
 		</dependency>
 		<dependency>
-			<groupId>pl.allegro.tech</groupId>
-			<artifactId>embedded-elasticsearch</artifactId>
-			<version>2.10.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>io.zonky.test</groupId>
 			<artifactId>embedded-postgres</artifactId>
 			<version>1.2.6</version>
@@ -344,9 +328,9 @@
 		</dependency>
 		<!-- Embedded Redis -->
 		<dependency>
-			<groupId>com.github.codemonstur</groupId>
+			<groupId>it.ozimov</groupId>
 			<artifactId>embedded-redis</artifactId>
-			<version>1.1.0</version>
+			<version>0.7.1</version>
 			<scope>test</scope>
 		</dependency>
 
