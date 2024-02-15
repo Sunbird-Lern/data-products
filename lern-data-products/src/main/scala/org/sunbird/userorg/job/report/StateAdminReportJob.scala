@@ -8,7 +8,7 @@ import org.apache.spark.sql._
 import org.ekstep.analytics.framework.Level.{ERROR, INFO}
 import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger}
-import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext}
+import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig, JobContext, StorageConfig}
 import org.sunbird.core.util.DecryptUtil
 import org.sunbird.cloud.storage.conf.AppConf
 import org.sunbird.core.util.DataSecurityUtil.{getSecuredExhaustFile, getSecurityLevel, zipAndPasswordProtect}
@@ -26,9 +26,9 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     
     val container = AppConf.getConfig("cloud.container.reports")
     val objectKey = AppConf.getConfig("admin.metrics.cloud.objectKey")
-    val storageConfig = getStorageConfig(container, objectKey);
+    var storageConfig: StorageConfig = _
     val projectName = AppConf.getConfig("sunbird_instance_name")
-    
+
     //$COVERAGE-OFF$ Disabling scoverage for main and execute method
     def name(): String = "StateAdminReportJob"
 
@@ -37,6 +37,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         JobLogger.init(name())
         JobLogger.start("Started executing", Option(Map("config" -> config, "model" -> name)))
         val jobConfig = JSONUtils.deserialize[JobConfig](config)
+        storageConfig = getStorageConfig(container, objectKey, jobConfig);
         JobContext.parallelization = 10
         implicit val sparkSession: SparkSession = openSparkSession(jobConfig);
         implicit val frameworkContext = getReportingFrameworkContext();
@@ -101,7 +102,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     }
 
     def getChannelWithRootOrgId(userExternalDecryptData: DataFrame) : scala.collection.Map[String, String] = {
-      val channelRootIdMap = userExternalDecryptData.rdd.map(r => (r.getAs[String]("channel"), r.getAs[String]("rootorgid"))).collectAsMap()
+      val channelRootIdMap = userExternalDecryptData.filter(col("channel").isNotNull && col("rootorgid").isNotNull).rdd.map(r => (r.getAs[String]("channel"), r.getAs[String]("rootorgid"))).collectAsMap()
       channelRootIdMap
     }
     
@@ -170,6 +171,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("userroororg").as("Root Org of user"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
+      //JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
       val files = resultDf.saveToBlobStore(storageConfig, "csv", "declared_user_detail", Option(Map("header" -> "true")), Option(Seq("provider")))
       files.foreach(file => JobLogger.log(s"Self-Declared file path: "+file, None, INFO))
       val fileUrl = files(0)
