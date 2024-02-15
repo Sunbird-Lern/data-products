@@ -28,6 +28,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
     val objectKey = AppConf.getConfig("admin.metrics.cloud.objectKey")
     var storageConfig: StorageConfig = _
     val projectName = AppConf.getConfig("sunbird_instance_name")
+
     //$COVERAGE-OFF$ Disabling scoverage for main and execute method
     def name(): String = "StateAdminReportJob"
 
