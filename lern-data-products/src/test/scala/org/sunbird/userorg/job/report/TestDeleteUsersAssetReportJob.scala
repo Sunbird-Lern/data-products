@@ -5,11 +5,6 @@ import org.apache.spark.sql.{DataFrame, Encoder, SparkSession}
 import org.scalamock.scalatest.MockFactory
 import org.sunbird.core.util.{EmbeddedCassandra, SparkSpec}
 
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import scala.Console.in
-
 class TestDeleteUsersAssetReportJob extends SparkSpec(null) with MockFactory {
   implicit var spark: SparkSession = _
 
@@ -25,18 +20,8 @@ class TestDeleteUsersAssetReportJob extends SparkSpec(null) with MockFactory {
 
 
   "DeletedUsersAssetsReportJob" should "generate reports" in {
-//    val outputDirectory = "/home/bharathwajshankar/Ekstep/files/"
-//    val formattedDate: String = new SimpleDateFormat("yyyyMMdd").format(new Date())
-//    val expectedOutputFile = s"$outputDirectory/delete_user_$formattedDate.csv"
-//    new File(expectedOutputFile).delete()
     val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.DeletedUsersAssetsReportJob"}}"""
-    DeletedUsersAssetsReportJob.main(strConfig);
-//    "DeletedUsersAssetsReportJob" should "exist" in {
-//      assert(new File(expectedOutputFile).exists())
-//    }
-//    "DeletedUsersAssetsReportJob" should "not be empty" in {
-//      assert(new File(expectedOutputFile).length() > 0)
-//    }
+    DeletedUsersAssetsReportJob.main(strConfig)
   }
 
   "fetchDeletedUsers" should "return a DataFrame" in {

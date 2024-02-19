@@ -161,13 +161,7 @@ object DeletedUsersAssetsReportJob extends IJob with Serializable {
     System.out.println("inside course assets")
     implicit val stringEncoder: Encoder[String] = ExpressionEncoder[String]()
 
-    val apiUrl = "https://staging.sunbirded.org/api/course/v1/batch/list"
-    val headers = Map(
-      "Authorization" -> "",
-      "X-Authenticated-User-token" -> "",
-      "Content-Type" -> "application/json"
-    )
-
+    val apiUrl = Constants.COURSE_BATCH_SEARCH_URL
     val limit = 10 // Set the desired limit for each request
     var offset = 0
     var totalRecords = 0
@@ -191,7 +185,7 @@ object DeletedUsersAssetsReportJob extends IJob with Serializable {
       )
 
       val request = JSONUtils.serialize(requestMap)
-      val response = RestUtil.post[CollectionDetails](apiUrl, request, Some(headers)).result
+      val response = RestUtil.post[CollectionDetails](apiUrl, request).result
       val responseMap = response.getOrElse("response", Map.empty).asInstanceOf[Map[String, Any]]
       val count = responseMap.getOrElse("count", 0).asInstanceOf[Int]
       val content = responseMap.getOrElse("content", List.empty).asInstanceOf[List[Map[String, Any]]]
