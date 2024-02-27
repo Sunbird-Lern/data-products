@@ -6,9 +6,9 @@ INSERT INTO sunbird.user (
     roles,
     username
 ) VALUES (
-    'c9e6006e-5811-4337-aa7c-48d0f535e3b8',
-    '0137038836873134080',
-    1,
+    '19d81ef7-36ce-41fe-ae2d-c8365d977be4',
+    '0123221617357783046602',
+    2,
     ['teacher'],
     'te**************@yopmail.com'
 );
