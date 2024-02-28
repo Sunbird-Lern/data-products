@@ -31,12 +31,12 @@ class TestDeleteUsersAssetReportJob extends SparkSpec(null) with MockFactory {
   }
 
   override def afterAll(): Unit = {
-    super.afterAll();
+    super.afterAll()
   }
 
 
   "DeletedUsersAssetsReportJob" should "generate reports" in {
-    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.DeletedUsersAssetsReportJob"}}"""
+    val strConfig = """{"search":{"type":"none"},"model":"org.sunbird.userorg.job.report.DeletedUsersAssetsReportJob","modelParams":{"configuredUserId":[],"configuredOrganisationId":"","configuredChannel":[]}}"""
     DeletedUsersAssetsReportJob.main(strConfig)
   }
 
@@ -56,14 +56,18 @@ class TestDeleteUsersAssetReportJob extends SparkSpec(null) with MockFactory {
 
   "fetchContentAssets" should "return a DataFrame" in {
     val mockedSpark: SparkSession = spark
-    val contentAssetsDF: DataFrame = DeletedUsersAssetsReportJob.fetchContentAssets()(mockedSpark)
+    val userIds: List[String] = List.empty[String]
+    var channels: List[String] = List.empty[String]
+    val contentAssetsDF: DataFrame = DeletedUsersAssetsReportJob.fetchContentAssets(userIds, channels)(mockedSpark)
     assert(contentAssetsDF != null)
     assert(contentAssetsDF.columns.length > 0)
   }
 
   "fetchCourseAssets" should "return a DataFrame" in {
     val mockedSpark: SparkSession = spark
-    val courseAssetsDF: DataFrame = DeletedUsersAssetsReportJob.fetchCourseAssets()(mockedSpark)
+    val userIds: List[String] = List.empty[String]
+    var channels: List[String] = List.empty[String]
+    val courseAssetsDF: DataFrame = DeletedUsersAssetsReportJob.fetchCourseAssets(userIds, channels)(mockedSpark)
     assert(courseAssetsDF != null)
     assert(courseAssetsDF.columns.length > 0)
   }

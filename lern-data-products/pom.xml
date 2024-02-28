@@ -331,26 +331,7 @@
 			<version>0.7.1</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.mongodb.scala</groupId>
-			<artifactId>mongo-scala-bson_2.12</artifactId>
-			<version>4.10.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mongodb.scala</groupId>
-			<artifactId>mongo-scala-driver_2.12</artifactId>
-			<version>4.10.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.reactivestreams</groupId>
-			<artifactId>reactive-streams</artifactId>
-			<version>1.0.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongodb-driver-reactivestreams</artifactId>
-			<version>4.10.1</version>
-		</dependency>
+
 		<dependency>
 			<groupId>com.moparisthebest</groupId>
 			<artifactId>junidecode</artifactId>

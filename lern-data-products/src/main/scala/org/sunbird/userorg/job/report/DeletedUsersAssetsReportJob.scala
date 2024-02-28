@@ -4,58 +4,43 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.functions.{col, lit, udf, when}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Dataset, Encoder, Row, SparkSession}
+import org.apache.spark.sql._
 import org.ekstep.analytics.framework.JobDriver.className
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger, RestUtil}
-import org.ekstep.analytics.framework.{FrameworkContext, IJob}
-import org.mongodb.scala.Document
-import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.bson.{BsonArray, BsonString}
-import org.mongodb.scala.model.Aggregates.{filter, project, sort}
-import org.mongodb.scala.model.Filters.{equal, in}
-import org.mongodb.scala.model.{Filters, Sorts}
+import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
 import org.sunbird.core.util.Constants
-import org.sunbird.core.util.MongoUtil.MongoUtil
 import org.sunbird.lms.exhaust.collection.{CollectionDetails, CourseBatch, DeleteCollectionInfo}
 import org.sunbird.lms.job.report.BaseReportsJob
 
 import java.text.SimpleDateFormat
-import java.util
 import java.util.Date
-import scala.collection.JavaConverters._
 
 object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Serializable {
-  val mongoUtil = new MongoUtil("localhost", 27017, "sl-pre-prod")
 
   override def main(config: String)(implicit sc: Option[SparkContext], fc: Option[FrameworkContext]): Unit = {
-    //    val jobConfig = JSONUtils.deserialize[JobConfig](config)
+    val jobConfig = JSONUtils.deserialize[JobConfig](config)
+    val configuredUserId: List[String] = jobConfig.modelParams.get("configuredUserId").asInstanceOf[List[String]]
+    val configuredChannel: List[String] = jobConfig.modelParams.get("configuredChannel").asInstanceOf[List[String]]
     JobLogger.init(name())
     JobLogger.start("Started executing", Option(Map("config" -> config, "model" -> name)))
     val spark = SparkSession.builder().appName(name())
       .master("local[*]").getOrCreate()
+    implicit val stringEncoder: Encoder[String] = ExpressionEncoder[String]
+    val userIds: List[String] = if (configuredUserId.nonEmpty) configuredUserId else getUserIdsFromDeletedUsers(fetchDeletedUsers(spark))
+    val channels: List[String] = if (configuredChannel.nonEmpty) configuredChannel else List.empty[String]
     val deletedUsersDF = fetchDeletedUsers(spark)
     System.out.println(deletedUsersDF.count())
     deletedUsersDF.show()
-    implicit val stringEncoder: Encoder[String] = ExpressionEncoder[String]
-    val userIds = getUserIdsFromDeletedUsers(fetchDeletedUsers(spark))
-    val mlDF = fetchMlData()(getProgramsAggregate(userIds), spark)
-    System.out.println(mlDF.count())
-    val contentAssetsDF = fetchContentAssets()(spark)
-    val courseAssetsDF = fetchCourseAssets()(spark)
+    val contentAssetsDF = fetchContentAssets(userIds, channels)(spark)
+    val courseAssetsDF = fetchCourseAssets(userIds, channels)(spark)
     val renamedDeletedUsersDF = deletedUsersDF
       .withColumnRenamed("id", "userIdAlias")
       .withColumnRenamed("username", "usernameAlias")
       .withColumnRenamed("rootorgid", "organisationIdAlias")
-
-    // Join mlDF with deleted users
-    val joinedMLDF = mlDF.join(renamedDeletedUsersDF, mlDF("author") === renamedDeletedUsersDF("userIdAlias"), "inner")
-
     // Join deleted users with content assets
     val joinedContentDF = renamedDeletedUsersDF.join(contentAssetsDF, renamedDeletedUsersDF("userIdAlias") === contentAssetsDF("userId"), "inner")
-
     // Join deleted users with course batch assets
     val joinedCourseDF = renamedDeletedUsersDF.join(courseAssetsDF, renamedDeletedUsersDF("userIdAlias") === courseAssetsDF("userId"), "inner")
-
     // Modify the concatRoles UDF to handle arrays
     val concatRoles = udf((roles: Any) => {
       roles match {
@@ -63,15 +48,13 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
         case _ => roles.toString
       }
     })
-
     // Select columns for the final output without using collect_list in UDF
     val userCols = Seq(
-      renamedDeletedUsersDF("userIdAlias").alias("userId"), // Use an appropriate alias for clarity
+      renamedDeletedUsersDF("userIdAlias").alias("userId"),
       renamedDeletedUsersDF("usernameAlias").alias("username"),
       renamedDeletedUsersDF("organisationIdAlias").alias("organisationId"),
-      concatRoles(renamedDeletedUsersDF("roles")).alias("roles"),
+      concatRoles(renamedDeletedUsersDF("roles")).alias("roles")
     )
-
     // Select columns for content assets
     val contentCols = Seq(
       contentAssetsDF("identifier").alias("assetIdentifier"),
@@ -79,7 +62,6 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
       contentAssetsDF("status").alias("assetStatus"),
       contentAssetsDF("objectType")
     )
-
     // Select columns for course batch assets
     val courseCols = Seq(
       courseAssetsDF("identifier").alias("assetIdentifier"),
@@ -89,22 +71,10 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
         .when(courseAssetsDF("status") === "2", "Batch ended").alias("assetStatus"),
       courseAssetsDF("objectType")
     )
-
-    // Select columns for mlDF
-    val mlCols = Seq(
-      mlDF("assetIdentifier").alias("assetIdentifier"),
-      mlDF("assetName").alias("assetName"),
-      mlDF("assetStatus").alias("assetStatus"),
-      lit("ml-program").alias("objectType")
-    )
-
-    // Combine DataFrames for content, course batch, and mlDF using unionAll
+    // Combine DataFrames for content and course batch using unionAll
     val combinedDF = joinedContentDF.select(userCols ++ contentCols: _*).unionAll(
       joinedCourseDF.select(userCols ++ courseCols: _*)
-    ).unionAll(
-      joinedMLDF.select(userCols ++ mlCols: _*)
     )
-
     // Deduplicate the combined DataFrame based on user ID
     val finalDF = combinedDF.distinct()
     finalDF.show()
@@ -121,61 +91,10 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
 
   }
 
-  def fetchMlData()(data: util.List[Document], spark: SparkSession): DataFrame = {
-    val rows: List[Row] = data.asScala.map { doc =>
-      val createdForValues: List[String] = doc.get("createdFor") match {
-        case Some(bsonArray: BsonArray) =>
-          bsonArray.asScala.collect {
-            case bsonString: BsonString => bsonString.getValue
-          }.toList
-        case _ => List.empty[String] // Handle unexpected type or provide a default value
-      }
-      Row(
-        doc.getObjectId("_id").toString,
-        doc.getString("name"),
-        doc.getString("status"),
-        doc.getString("author"),
-        createdForValues.mkString(",")
-      )
-    }.toList
-    val schema = StructType(
-      List(
-        StructField("assetIdentifier", StringType, nullable = false),
-        StructField("assetName", StringType, nullable = true),
-        StructField("assetStatus", StringType, nullable = true),
-        StructField("author", StringType, nullable = true),
-        StructField("createdFor", StringType, nullable = true)
-      )
-    )
-
-    val df = spark.createDataFrame(spark.sparkContext.parallelize(rows), schema)
-    df.show()
-    df
-  }
-
   def name(): String = "DeletedUsersAssetsReportJob"
 
-
-  def getProgramsAggregate(userIds: List[String]): util.List[Document] = {
-    val matchQuery = Filters.and(
-      in("author", userIds: _*),
-      equal("status", "active")
-    )
-    val sortQuery = Sorts.descending("createdAt")
-    val projection1 = Document("_id" -> 1, "name" -> 1, "status" -> 1, "author" -> 1, "createdFor" -> 1)
-    val pipeline: List[Bson] = List(
-      filter(matchQuery),
-      sort(sortQuery),
-      project(projection1)
-    )
-    println("inside getProgramsAggregate function before calling aggregate method")
-    mongoUtil.aggregate("solutions", pipeline)
-  }
-
-  def fetchContentAssets()(implicit spark: SparkSession): DataFrame = {
+  def fetchContentAssets(userIds: List[String], channels: List[String])(implicit spark: SparkSession): DataFrame = {
     System.out.println("inside content assets")
-    implicit val stringEncoder: Encoder[String] = ExpressionEncoder[String]
-
     val apiURL = Constants.CONTENT_SEARCH_URL
     val limit = 10000 // Set the desired limit for each request
     var offset = 0
@@ -195,7 +114,8 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
       val requestMap = Map(
         "request" -> Map(
           "filters" -> Map(
-            "createdBy" -> getUserIdsFromDeletedUsers(fetchDeletedUsers(spark)),
+            "createdBy" -> userIds,
+            "channel" -> channels,
             "status" -> Array("Live", "Draft", "Review", "Unlisted")
           ),
           "fields" -> Array("identifier", "createdBy", "name", "objectType", "status", "lastUpdatedOn"),
@@ -247,9 +167,8 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
     userDf
   }
 
-  def fetchCourseAssets()(implicit spark: SparkSession): DataFrame = {
+  def fetchCourseAssets(userIds: List[String], channels: List[String])(implicit spark: SparkSession): DataFrame = {
     System.out.println("inside course assets")
-    implicit val stringEncoder: Encoder[String] = ExpressionEncoder[String]()
     val apiUrl = Constants.COURSE_BATCH_SEARCH_URL
     val limit = 10000 // Set the desired limit for each request
     var offset = 0
@@ -264,7 +183,8 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
       val requestMap = Map(
         "request" -> Map(
           "filters" -> Map(
-            "createdBy" -> getUserIdsFromDeletedUsers(fetchDeletedUsers(spark)),
+            "createdBy" -> userIds,
+            "createdFor" -> channels,
             "status" -> 1),
           "fields" -> Array("identifier", "name", "createdBy", "status"),
           "sortBy" -> Map("createdOn" -> "Desc"),
