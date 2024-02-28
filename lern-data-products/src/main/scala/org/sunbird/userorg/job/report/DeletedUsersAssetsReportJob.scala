@@ -87,7 +87,7 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
       .write
       .option("header", "true")
       .mode("overwrite")
-      .csv(s"/home/bharathwajshankar/Ekstep/data-products/lern-data-products/src/test/resources/$fileName")
+      .csv(s"/src/test/resources/$fileName")
 
   }
 
