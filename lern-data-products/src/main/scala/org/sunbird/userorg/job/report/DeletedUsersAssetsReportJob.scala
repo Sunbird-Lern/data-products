@@ -87,7 +87,7 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
       .write
       .option("header", "true")
       .mode("overwrite")
-      .csv(s"/src/test/resources/$fileName")
+      .csv(s"src/test/resources/$fileName")
 
   }
 
@@ -128,24 +128,37 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
       val request = JSONUtils.serialize(requestMap)
       val response = RestUtil.post[CollectionDetails](apiURL, request).result
       val count = response.getOrElse("count", 0).asInstanceOf[Int]
-      val contentList = response.getOrElse("content", List.empty).asInstanceOf[List[Map[String, Any]]]
 
-      if (contentList.nonEmpty) {
-        val contents = contentList.map(entry => DeleteCollectionInfo(
-          entry("identifier").toString,
-          entry("createdBy").toString,
-          entry("name").toString,
-          entry("objectType").toString,
-          entry("status").toString
-        ))
-        val contentDFBatch = spark.createDataFrame(contents)
-          .withColumnRenamed("createdBy", "userId")
-          .select("identifier", "userId", "name", "objectType", "status")
-        contentDf = contentDf.union(contentDFBatch)
+      // Process each key in the result map
+      response.asInstanceOf[Map[String, Any]].foreach {
+        case (key, value) =>
+          value match {
+            case list: List[Map[String, Any]] =>
+              // Process each entry in the list
+              val entries = list.map(entry =>
+                DeleteCollectionInfo(
+                  entry.getOrElse("identifier", "").toString,
+                  entry.getOrElse("createdBy", "").toString,
+                  entry.getOrElse("name", "").toString,
+                  entry.getOrElse("objectType", "").toString,
+                  entry.getOrElse("status", "").toString
+                )
+              )
+              // Create a DataFrame from the entries
+              val entryDF = spark.createDataFrame(entries)
+                .withColumnRenamed("createdBy", "userId")
+                .select("identifier", "userId", "name", "objectType", "status")
+              // Union with the existing contentDf
+              contentDf = contentDf.union(entryDF)
+
+            case _ => // Ignore other types
+          }
       }
+
       totalRecords = count
       offset += limit
     } while (offset < totalRecords)
+
     contentDf.show()
     System.out.println(contentDf.count())
     contentDf
