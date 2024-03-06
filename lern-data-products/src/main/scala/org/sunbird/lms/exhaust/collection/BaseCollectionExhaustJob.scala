@@ -366,6 +366,7 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
             val reportDF = res._2
             val fileFormat = "csv"
             val filePath = getFilePath(batch.batchId, requestId.getOrElse(""))
+            println(filePath)
             reportDF.show(false)
             val files = reportDF.saveToBlobStore(storageConfig, fileFormat, filePath, Option(Map("header" -> "true")), None)
             JobLogger.log(s"processBatches filePath: $filePath", Some("filePath" -> filePath), INFO)
