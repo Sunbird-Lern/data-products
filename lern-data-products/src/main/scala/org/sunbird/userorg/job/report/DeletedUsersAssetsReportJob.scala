@@ -6,6 +6,7 @@ import org.apache.spark.sql.functions.{col, lit, udf, when}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql._
 import org.ekstep.analytics.framework.JobDriver.className
+import org.ekstep.analytics.framework.conf.AppConf
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
 import org.sunbird.core.util.Constants
@@ -169,7 +170,7 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
   }
 
   def fetchDeletedUsers(implicit spark: SparkSession): DataFrame = {
-    val sunbirdKeyspace = "sunbird"
+    val sunbirdKeyspace = AppConf.getConfig("sunbird.user.keyspace")
     val userDf = loadData(spark, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None).select(
       col("id"),
       col("username"),
