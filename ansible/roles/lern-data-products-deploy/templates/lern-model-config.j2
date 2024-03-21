@@ -24,11 +24,9 @@ config() {
 
 
   if [ -z "$2" ]; then endDate=$(date --date yesterday "+%Y-%m-%d"); else endDate=$2; fi
-  if [ ! -z "$3" ]; then specificUserId=$3; fi #used as specfic user id in usercacheindxerjob
+  if [ ! -z "$3" ]; then specificUserId=$3; configuredUserId=$3; fi #used as specfic user id in usercacheindxerjob,used as configured user id in deleteusersassetsreportjob
   if [ ! -z "$4" ]; then populateAnonymousData=$4; fi #used as populateAnonymousData flag in usercacheindxerjob
-  if [ ! -z "$5" ]; then refreshUserData=$5; fi #used as refreshUserData flag in usercacheindxerjob
-  if [ ! -z "$3" ]; then configuredUserId=$3; fi #used as configured user id in deleteusersassetsreportjob
-  if [ ! -z "$5" ]; then configuredChannel=$5; fi #used as configured channel flag in deleteusersassetsreportjob
+  if [ ! -z "$5" ]; then refreshUserData=$5; configuredChannel=$5;fi #used as refreshUserData flag in usercacheindxerjob,used as configured channel flag in deleteusersassetsreportjob
   case "$1" in
     "assessment-correction")
     echo '{"search":{"type":"{{dp_object_store_type}}","queries":[{"bucket":"'$bucket'","prefix":"unique/raw/","endDate":"'$endDate'","delta":0}]},"model":"org.sunbird.analytics.model.report.AssessmentCorrectionModel","modelParams":{"parallelization":200,"druidConfig":{"queryType":"groupBy","dataSource":"content-model-snapshot","intervals":"1901-01-01T00:00:00+00:00/2101-01-01T00:00:00+00:00","granularity":"all","aggregations":[{"name":"count","type":"count","fieldName":"count"}],"dimensions":[{"fieldName":"identifier","aliasName":"identifier"}],"filters":[{"type":"equals","dimension":"contentType","value":"SelfAssess"}],"descending":"false"},"fileOutputConfig":{"to":"file","params":{"file":"{{ analytics.home }}/assessment-correction/skippedEvents"}},"sparkCassandraConnectionHost":"'$sunbirdPlatformCassandraHost'"},"output":[{"to":"kafka","params":{"brokerList":"'$brokerIngestionList'","topic":"'$assessTopic'"}}],"parallelization":200,"appName":"Assessment Correction Model"}'
