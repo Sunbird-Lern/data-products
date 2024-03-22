@@ -78,10 +78,18 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userSelfDeclaredExtIdDF.col("*"), userDecrpytedDataDF.col("decrypted-email"), userDecrpytedDataDF.col("decrypted-phone"))
     
         //loading user data with location-details based on the user's from the user-external-identifier table
-        val userDf = loadData(sparkSession, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None).
-            select(col(  "userid"),
-                concat_ws(" ", col("firstname"), col("lastname")).as("Name"),
-                col("email").as("profileemail"), col("phone").as("profilephone"), col("rootorgid"), col("profileusertypes"), col("profilelocation"),when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").when(col("status") === 1, "Inactive").otherwise("Inactive").as("Invalid user").as("status_description"))
+        val userDf = loadData(sparkSession, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None)
+          .select(
+            col("userid"),
+            concat_ws(" ", col("firstname"), col("lastname")).as("Name"),
+            col("email").as("profileemail"),
+            col("phone").as("profilephone"),
+            col("rootorgid"),
+            col("profileusertypes"),
+            col("profilelocation"),
+            col("status")
+          )
+          .withColumn("status_description", when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").otherwise("Inactive"))
       val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
         val commonUserDf = userWithProfileDF.join(userExternalDecryptData, userWithProfileDF.col("userid") === userExternalDecryptData.col("userid"), "inner").
             select(userWithProfileDF.col("*"))
@@ -168,7 +176,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("usertype").as("User Type"),
                 col("usersubtype").as("User-Sub Type"),
                 col("userroororg").as("Root Org of user"),
-                col("status_description").as("status"),
+                col("status_description").as("status_description"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
       //JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
