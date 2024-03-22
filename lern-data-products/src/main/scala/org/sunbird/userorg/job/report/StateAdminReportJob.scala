@@ -78,33 +78,30 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userSelfDeclaredExtIdDF.col("*"), userDecrpytedDataDF.col("decrypted-email"), userDecrpytedDataDF.col("decrypted-phone"))
     
         //loading user data with location-details based on the user's from the user-external-identifier table
-        val userDf = loadData(sparkSession, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None)
-          .select(
-            col("userid"),
-            concat_ws(" ", col("firstname"), col("lastname")).as("Name"),
-            col("email").as("profileemail"),
-            col("phone").as("profilephone"),
-            col("rootorgid"),
-            col("profileusertypes"),
-            col("profilelocation"),
-            col("status")
-          )
-          .withColumn("status_description", when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").otherwise("Inactive"))
-      userDf.show()
+        val userDf = loadData(sparkSession, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None).
+            select(col(  "userid"),
+                concat_ws(" ", col("firstname"), col("lastname")).as("Name"),
+                col("email").as("profileemail"), col("phone").as("profilephone"), col("rootorgid"), col("profileusertypes"), col("profilelocation"),when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").when(col("status") === 1, "Inactive").otherwise("Inactive").as("Invalid user"))
+      userDf.limit(2).show()
       val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
+      userWithProfileDF.limit(2).show()
         val commonUserDf = userWithProfileDF.join(userExternalDecryptData, userWithProfileDF.col("userid") === userExternalDecryptData.col("userid"), "inner").
             select(userWithProfileDF.col("*"))
+      commonUserDf.limit(2).show()
         val userDenormDF = commonUserDf.withColumn("exploded_location", explode_outer(col("locationids")))
             .join(locationDF, col("exploded_location") === locationDF.col("locid") && (locationDF.col("loctype") === "cluster" || locationDF.col("loctype") === "block" || locationDF.col("loctype") === "district" || locationDF.col("loctype") === "state"), "left_outer")
-        val userDenormLocationDF = userDenormDF.groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid").
+      userDenormDF.limit(2).show()
+      val userDenormLocationDF = userDenormDF.groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid").
             pivot("loctype").agg(first("locname").as("locname"))
-        
+      userDenormLocationDF.limit(2).show()
         val decryptedUserProfileDF = decryptPhoneEmailInDF(userDenormLocationDF, "profileemail", "profilephone")
+      decryptedUserProfileDF.limit(2).show()
         val denormLocationUserDecryptData  = userDenormLocationDF.join(decryptedUserProfileDF, userDenormLocationDF.col("userid") === decryptedUserProfileDF.col("userId"), "left_outer").
             select(userDenormLocationDF.col("*"), decryptedUserProfileDF.col("decrypted-email"), decryptedUserProfileDF.col("decrypted-phone"))
-        val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
+      denormLocationUserDecryptData.limit(2).show()
+      val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
-        finalUserDf.show()
+      finalUserDf.limit(2).show()
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
 
       resultDf
@@ -178,7 +175,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("usertype").as("User Type"),
                 col("usersubtype").as("User-Sub Type"),
                 col("userroororg").as("Root Org of user"),
-                col("status").as("status_description"),
+                col("status").as("status"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
       //JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
