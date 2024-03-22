@@ -85,9 +85,11 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
       val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
         val commonUserDf = userWithProfileDF.join(userExternalDecryptData, userWithProfileDF.col("userid") === userExternalDecryptData.col("userid"), "inner").
             select(userWithProfileDF.col("*"))
+      commonUserDf.show()
         val userDenormDF = commonUserDf.withColumn("exploded_location", explode_outer(col("locationids")))
             .join(locationDF, col("exploded_location") === locationDF.col("locid") && (locationDF.col("loctype") === "cluster" || locationDF.col("loctype") === "block" || locationDF.col("loctype") === "district" || locationDF.col("loctype") === "state"), "left_outer")
-      val userDenormLocationDF = userDenormDF.select("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid", "status_description")
+      userDenormDF.show()
+      val userDenormLocationDF = userDenormDF.select("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid", "status")
         .groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid")
         .pivot("loctype")
         .agg(first("locname").as("locname"))
