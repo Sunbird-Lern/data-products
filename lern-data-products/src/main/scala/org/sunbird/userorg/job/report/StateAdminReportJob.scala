@@ -81,14 +81,12 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val userDf = loadData(sparkSession, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None).
             select(col(  "userid"),
                 concat_ws(" ", col("firstname"), col("lastname")).as("Name"),
-                col("email").as("profileemail"), col("phone").as("profilephone"), col("rootorgid"), col("profileusertypes"), col("profilelocation"),when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").when(col("status") === 1, "Inactive").otherwise("Inactive").as("Invalid user"))
+                col("email").as("profileemail"), col("phone").as("profilephone"), col("rootorgid"), col("profileusertypes"), col("profilelocation"),when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").when(col("status") === 1, "Inactive user"))
       val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
         val commonUserDf = userWithProfileDF.join(userExternalDecryptData, userWithProfileDF.col("userid") === userExternalDecryptData.col("userid"), "inner").
             select(userWithProfileDF.col("*"))
-      commonUserDf.show()
         val userDenormDF = commonUserDf.withColumn("exploded_location", explode_outer(col("locationids")))
             .join(locationDF, col("exploded_location") === locationDF.col("locid") && (locationDF.col("loctype") === "cluster" || locationDF.col("loctype") === "block" || locationDF.col("loctype") === "district" || locationDF.col("loctype") === "state"), "left_outer")
-      userDenormDF.show()
       val userDenormLocationDF = userDenormDF.select("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid", "status")
         .groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid")
         .pivot("loctype")
@@ -99,8 +97,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userDenormLocationDF.col("*"), decryptedUserProfileDF.col("decrypted-email"), decryptedUserProfileDF.col("decrypted-phone"))
         val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
+      finalUserDf.show()
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
-
       resultDf
     }
 
