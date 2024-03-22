@@ -90,7 +90,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             when(col("status") === 2, "Deleted")
               .when(col("status") === 1, "Active")
               .when(col("status") === 0, "Inactive")
-              .otherwise("Invalid").as("status") // Renaming the column to "status"
+              .otherwise("Invalid").as("status_description") // Renaming the column to "status"
           )
 
       val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
@@ -98,7 +98,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userWithProfileDF.col("*"))
         val userDenormDF = commonUserDf.withColumn("exploded_location", explode_outer(col("locationids")))
             .join(locationDF, col("exploded_location") === locationDF.col("locid") && (locationDF.col("loctype") === "cluster" || locationDF.col("loctype") === "block" || locationDF.col("loctype") === "district" || locationDF.col("loctype") === "state"), "left_outer")
-        val userDenormLocationDF = userDenormDF.groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid","status").
+        val userDenormLocationDF = userDenormDF.groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid","status_description").
             pivot("loctype").agg(first("locname").as("locname"))
 
         val decryptedUserProfileDF = decryptPhoneEmailInDF(userDenormLocationDF, "profileemail", "profilephone")
@@ -179,7 +179,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("usertype").as("User Type"),
                 col("usersubtype").as("User-Sub Type"),
                 col("userroororg").as("Root Org of user"),
-                col("status").as("status"),
+                col("status_description").as("status"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
       //JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);
