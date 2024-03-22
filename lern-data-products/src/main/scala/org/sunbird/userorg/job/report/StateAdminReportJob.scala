@@ -81,9 +81,8 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
         val userDf = loadData(sparkSession, Map("table" -> "user", "keyspace" -> sunbirdKeyspace), None).
             select(col(  "userid"),
                 concat_ws(" ", col("firstname"), col("lastname")).as("Name"),
-                col("email").as("profileemail"), col("phone").as("profilephone"), col("rootorgid"), col("profileusertypes"), col("profilelocation"))
-        val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
-        
+                col("email").as("profileemail"), col("phone").as("profilephone"), col("rootorgid"), col("profileusertypes"), col("profilelocation"),col("status"),when(col("status") === 2, "Deleted").when(col("status") === 1, "Active").when(col("status") === 1, "Inactive").otherwise("Inactive").as("Invalid user"))
+      val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
         val commonUserDf = userWithProfileDF.join(userExternalDecryptData, userWithProfileDF.col("userid") === userExternalDecryptData.col("userid"), "inner").
             select(userWithProfileDF.col("*"))
         val userDenormDF = commonUserDf.withColumn("exploded_location", explode_outer(col("locationids")))
