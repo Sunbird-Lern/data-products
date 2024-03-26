@@ -87,10 +87,10 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             col("rootorgid"),
             col("profileusertypes"),
             col("profilelocation"),
-            when(col("status") === 2, "Deleted")
-              .when(col("status") === 1, "Active")
-              .when(col("status") === 0, "Inactive")
-              .otherwise("Invalid").as("status_description") // Renaming the column to "status"
+            when(col("status") === 2, "Deleted user")
+              .when(col("status") === 1, "Active user")
+              .when(col("status") === 0, "Inactive user")
+              .otherwise("Invalid").as("user_status")
           )
 
       val userWithProfileDF = appendUserProfileTypeWithLocation(userDf);
@@ -98,15 +98,13 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
             select(userWithProfileDF.col("*"))
         val userDenormDF = commonUserDf.withColumn("exploded_location", explode_outer(col("locationids")))
             .join(locationDF, col("exploded_location") === locationDF.col("locid") && (locationDF.col("loctype") === "cluster" || locationDF.col("loctype") === "block" || locationDF.col("loctype") === "district" || locationDF.col("loctype") === "state"), "left_outer")
-        val userDenormLocationDF = userDenormDF.groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid","status_description").
+        val userDenormLocationDF = userDenormDF.groupBy("userid", "Name", "usertype", "usersubtype", "profileemail", "profilephone", "rootorgid", "user_status").
             pivot("loctype").agg(first("locname").as("locname"))
-
         val decryptedUserProfileDF = decryptPhoneEmailInDF(userDenormLocationDF, "profileemail", "profilephone")
         val denormLocationUserDecryptData  = userDenormLocationDF.join(decryptedUserProfileDF, userDenormLocationDF.col("userid") === decryptedUserProfileDF.col("userId"), "left_outer").
             select(userDenormLocationDF.col("*"), decryptedUserProfileDF.col("decrypted-email"), decryptedUserProfileDF.col("decrypted-phone"))
         val finalUserDf = denormLocationUserDecryptData.join(orgExternalIdDf, denormLocationUserDecryptData.col("rootorgid") === orgExternalIdDf.col("id"), "left_outer").
             select(denormLocationUserDecryptData.col("*"), orgExternalIdDf.col("orgName").as("userroororg"))
-      finalUserDf.show()
         val resultDf = saveUserSelfDeclaredExternalInfo(userExternalDecryptData, finalUserDf)
       resultDf
     }
@@ -179,7 +177,7 @@ object StateAdminReportJob extends IJob with StateAdminReportHelper {
                 col("usertype").as("User Type"),
                 col("usersubtype").as("User-Sub Type"),
                 col("userroororg").as("Root Org of user"),
-                col("status_description").as("status"),
+                col("user_status").as("status"),
                 col("channel").as("provider"))
           .filter(col("provider").isNotNull)
       //JobLogger.log(s"storage config details::: " + storageConfig.toString, None, INFO);

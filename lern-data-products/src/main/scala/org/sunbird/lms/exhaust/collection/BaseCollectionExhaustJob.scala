@@ -29,7 +29,7 @@ import scala.languageFeature.dynamics
 
 case class UserData(userid: String, state: Option[String] = Option(""), district: Option[String] = Option(""), orgname: Option[String] = Option(""), firstname: Option[String] = Option(""), lastname: Option[String] = Option(""), email: Option[String] = Option(""),
                     phone: Option[String] = Option(""), rootorgid: String, block: Option[String] = Option(""), schoolname: Option[String] = Option(""), schooludisecode: Option[String] = Option(""), cluster: Option[String] = Option(""),
-                    usertype: Option[String] = Option(""), usersubtype: Option[String] = Option(""),status: String)
+                    usertype: Option[String] = Option(""), usersubtype: Option[String] = Option(""), status: Option[String] = Option(""))
 
 case class CollectionConfig(batchId: Option[String], searchFilter: Option[Map[String, AnyRef]], batchFilter: Option[List[String]])
 case class CollectionBatch(batchId: String, collectionId: String, batchName: String, custodianOrgId: String, requestedOrgId: String, collectionOrgId: String, collectionName: String, userConsent: Option[String] = Some("No"))
@@ -519,10 +519,10 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
     val df = loadData(userCacheDBSettings, redisFormat, StructType(schema.fields ++ additionalFieldSchema.fields))
       .withColumn("username", concat_ws(" ", col("firstname"), col("lastname")))
       .withColumn("status",
-        when(col("status") === 2, "Deleted")
-          .when(col("status") === 1, "Active")
-          .when(col("status") === 0, "Inactive")
-          .otherwise("Invalid")
+        when(col("status") === 2, "Deleted user")
+          .when(col("status") === 1, "Active user")
+          .when(col("status") === 0, "Inactive user")
+          .otherwise("Invalid user")
       ).select(cols.head, cols.tail: _*)
       .repartition(AppConf.getConfig("exhaust.user.parallelism").toInt,col("userid"))
     if (persist) df.persist() else df
