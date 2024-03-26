@@ -24,7 +24,7 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
     val configuredChannel: List[String] = jobConfig.modelParams.get("configuredChannel").asInstanceOf[List[String]]
     JobLogger.init(name())
     JobLogger.start("Started executing", Option(Map("config" -> config, "model" -> name)))
-    val spark = openSparkSession(jobConfig);
+    val spark = openSparkSession(jobConfig)
     implicit val stringEncoder: Encoder[String] = ExpressionEncoder[String]
     val userIds: List[String] = if (configuredUserId.nonEmpty) configuredUserId else getUserIdsFromDeletedUsers(fetchDeletedUsers(spark))
     val channels: List[String] = if (configuredChannel.nonEmpty) configuredChannel else List.empty[String]
