@@ -516,7 +516,14 @@ trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExh
 
   def getUserCacheDF(cols: Seq[String], persist: Boolean, additionalFieldSchema: StructType)(implicit spark: SparkSession): DataFrame = {
     val schema = Encoders.product[UserData].schema
-    val df = loadData(userCacheDBSettings, redisFormat, StructType(schema.fields ++ additionalFieldSchema.fields)).withColumn("username", concat_ws(" ", col("firstname"), col("lastname"))).select(cols.head, cols.tail: _*)
+    val df = loadData(userCacheDBSettings, redisFormat, StructType(schema.fields ++ additionalFieldSchema.fields))
+      .withColumn("username", concat_ws(" ", col("firstname"), col("lastname")))
+      .withColumn("status",
+        when(col("status") === 2, "Deleted")
+          .when(col("status") === 1, "Active")
+          .when(col("status") === 0, "Inactive")
+          .otherwise("Invalid")
+      ).select(cols.head, cols.tail: _*)
       .repartition(AppConf.getConfig("exhaust.user.parallelism").toInt,col("userid"))
     if (persist) df.persist() else df
   }
