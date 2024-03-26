@@ -29,7 +29,7 @@ import scala.languageFeature.dynamics
 
 case class UserData(userid: String, state: Option[String] = Option(""), district: Option[String] = Option(""), orgname: Option[String] = Option(""), firstname: Option[String] = Option(""), lastname: Option[String] = Option(""), email: Option[String] = Option(""),
                     phone: Option[String] = Option(""), rootorgid: String, block: Option[String] = Option(""), schoolname: Option[String] = Option(""), schooludisecode: Option[String] = Option(""), cluster: Option[String] = Option(""),
-                    usertype: Option[String] = Option(""), usersubtype: Option[String] = Option(""))
+                    usertype: Option[String] = Option(""), usersubtype: Option[String] = Option(""),status: String)
 
 case class CollectionConfig(batchId: Option[String], searchFilter: Option[Map[String, AnyRef]], batchFilter: Option[List[String]])
 case class CollectionBatch(batchId: String, collectionId: String, batchName: String, custodianOrgId: String, requestedOrgId: String, collectionOrgId: String, collectionName: String, userConsent: Option[String] = Some("No"))
