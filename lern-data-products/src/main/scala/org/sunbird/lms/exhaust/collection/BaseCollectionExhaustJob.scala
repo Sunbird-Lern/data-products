@@ -38,6 +38,8 @@ case class CollectionDetails(result: Map[String, AnyRef])
 case class CollectionInfo(channel: String, identifier: String, name: String, userConsent: Option[String], status: String)
 case class Metrics(totalRequests: Option[Int], failedRequests: Option[Int], successRequests: Option[Int], duplicateRequests: Option[Int])
 case class ProcessedRequest(channel: String, batchId: String, filePath: String, fileSize: Long)
+case class DeleteCollectionInfo(identifier: String, userId: String, name: String, objectType: String, status: String)
+case class CourseBatch(identifier: String, userId: String, name: String, status: String)
 
 trait BaseCollectionExhaustJob extends BaseReportsJob with IJob with OnDemandExhaustJob with Serializable {
 

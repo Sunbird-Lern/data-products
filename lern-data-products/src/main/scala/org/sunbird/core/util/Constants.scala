@@ -24,7 +24,11 @@ object Constants {
     val EXPERIMENT_DEFINITION_TABLE = "experiment_definition";
 
     val SEARCH_SERVICE_URL = AppConf.getConfig("service.search.url")
+    var CONTENT_URL: String = AppConf.getConfig("content.search.url")
+    var COURSE_BATCH_URL: String = AppConf.getConfig("course.batch.search.url")
     val COMPOSITE_SEARCH_URL = s"$SEARCH_SERVICE_URL" + AppConf.getConfig("service.search.path")
+    val CONTENT_SEARCH_URL = s"$CONTENT_URL" + AppConf.getConfig("content.search.path")
+    val COURSE_BATCH_SEARCH_URL=s"$COURSE_BATCH_URL" + AppConf.getConfig("batch.search.path")
     val TENANT_PREFERENCE_PRIVATE_READ_URL = AppConf.getConfig("tenant.pref.read.private.api.url")
     val ORG_PRIVATE_SEARCH_URL: String = AppConf.getConfig("org.search.private.api.url")
     val TEMP_DIR = AppConf.getConfig("spark_output_temp_dir")
