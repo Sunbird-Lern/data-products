@@ -7,6 +7,7 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql._
 import org.ekstep.analytics.framework.JobDriver.className
 import org.ekstep.analytics.framework.conf.AppConf
+import org.ekstep.analytics.framework.util.DatasetUtil.extensions
 import org.ekstep.analytics.framework.util.{JSONUtils, JobLogger, RestUtil}
 import org.ekstep.analytics.framework.{FrameworkContext, IJob, JobConfig}
 import org.sunbird.core.util.Constants
@@ -78,21 +79,15 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
     // Deduplicate the combined DataFrame based on user ID
     val finalDF = combinedDF.distinct()
     finalDF.show()
-    val coalescedDF: Dataset[Row] = finalDF.coalesce(1)
+    val container = AppConf.getConfig("cloud.container.reports")
+    val objectKey = AppConf.getConfig("delete.user.cloud.objectKey")
+    val storageConfig = getStorageConfig(container, objectKey, jobConfig)
     val formattedDate: String = {
       new SimpleDateFormat("yyyyMMdd").format(new Date())
     }
-    val fileName: String = s"delete_user_$formattedDate.csv"
-    coalescedDF
-      .write
-      .option("header", "true")
-      .mode("overwrite")
-      .csv(s"src/test/resources/$fileName")
-
+    finalDF.saveToBlobStore(storageConfig, "csv",s"delete_user_$formattedDate", Option(Map("header" -> "true")), None)
   }
-
   def name(): String = "DeletedUsersAssetsReportJob"
-
   def fetchContentAssets(userIds: List[String], channels: List[String])(implicit spark: SparkSession): DataFrame = {
     System.out.println("inside content assets")
     val apiURL = "http://10.246.3.3/search/v3/search"
