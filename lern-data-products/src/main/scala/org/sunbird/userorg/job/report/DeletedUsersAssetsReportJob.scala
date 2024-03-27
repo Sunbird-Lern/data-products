@@ -85,7 +85,7 @@ object DeletedUsersAssetsReportJob extends IJob with BaseReportsJob with Seriali
     val formattedDate: String = {
       new SimpleDateFormat("yyyyMMdd").format(new Date())
     }
-    finalDF.saveToBlobStore(storageConfig, "csv",s"delete_user_$formattedDate", Option(Map("header" -> "true")), None)
+    finalDF.saveToBlobStore(storageConfig,"csv",s"delete_user_$formattedDate", Option(Map("header" -> "true")), Option(Seq("rootorgid"))
   }
   def name(): String = "DeletedUsersAssetsReportJob"
   def fetchContentAssets(userIds: List[String], channels: List[String])(implicit spark: SparkSession): DataFrame = {
